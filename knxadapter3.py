@@ -107,10 +107,14 @@ class KnxAdapter():
         weather_station.run()
 
         pioneer_avr = PioneerAVR(self)
-        pioneer_avr.run()
-        
+        tasks = pioneer_avr.run()
+
         apcups = ApcUps(self)
-        apcups.run()
+        tasks += apcups.run()
+
+        futs = asyncio.gather(*tasks)
+        log.info("tasks={!r}\ntasks={!r}".format(tasks, futs))
+        self.loop.run_until_complete(futs)
 
         try:
             self.loop.run_forever()
@@ -320,8 +324,8 @@ class PioneerAVR():
         if self.d.cfg["avr"]["enabled"]:
             log.info("running Pioneer AVR Client...")
             self.avr_client = self.d.loop.run_until_complete(self.avr_client(self.d.loop, self.d.cfg["avr"]))
-            futs = asyncio.gather(self.handle_avr())
-            self.d.loop.run_until_complete(futs)
+            log.info("self.avr_client {!r}".format(self.avr_client))
+            return [self.handle_avr()]
 
     def quit(self):
         log.info("quit Pioneer AVR Client...")
@@ -420,8 +424,7 @@ class ApcUps():
             log.info("running APC UPS Client...")
             self.ups_client = self.d.loop.run_until_complete(self.ups_client(self.d.loop, self.d.cfg["ups"]))
             poll_task = self.d.loop.create_task(self.poll_ups())
-            futs = asyncio.gather(self.handle_ups(), poll_task)
-            self.d.loop.run_until_complete(futs)
+            return [self.handle_ups(), poll_task]
 
     def quit(self):
         log.info("quit APC UPS Client...")
