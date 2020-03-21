@@ -362,7 +362,8 @@ class ApcUps():
     async def handle_ups(self):
         log.debug('handle_ups...')
         while True:
-            data = await self.ups_reader.read()
+            data = await self.ups_reader.readuntil(b'\x00\x00')
+            log.debug('ups received {!r}'.format(data))
 
             if not data:
                 break
@@ -379,27 +380,25 @@ class ApcUps():
                 sequence = ""
                 
                 for idx, group in enumerate(self.obj_list):
-                    print("idx: {0} group: {1}".format(idx, group))
                     val = m.groups(0)[idx]
                     debug_msg = "idx: {0} group: {1} val: {2}".format(idx, group, val)
-                    print(debug_msg)
                     try:
                         value = float(val)
                         debug_msg += " numeric value: {0:g}".format(value)
-                                                
                         if group in self.previous_values:
                             prev_val = self.previous_values[group]
                             if self.hysd[group]:
                                 if abs(value - prev_val) <= self.hysd[group]:
-                                    log.debug("{0}-{1:g}<{2:g} hysteresis, ignored!".
-                                        format(value, prev_val, self.hysd[group]))
+                                    log.debug("{0} {1}-{2:g}<{3:g} hysteresis, ignored!".
+                                        format(group, value, prev_val, self.hysd[group]))
                                     continue
+                                else:
+                                    debug_msg += " (previous value: {0:g})".format(prev_val)
                             elif prev_val == value:
                                 log.debug("{!r} unchanged, ignored!".format(debug_msg))
                                 continue
                         sequence += '<object id="%s" value="%.2f"/>' % (group, value)
                     
-
                     except ValueError:
                         if val == "ONLINE":
                             value = "true"
@@ -421,7 +420,7 @@ class ApcUps():
             log.info("running APC UPS Client...")
             self.ups_client = self.d.loop.run_until_complete(self.ups_client(self.d.loop, self.d.cfg["ups"]))
             poll_task = self.d.loop.create_task(self.poll_ups())
-            futs = asyncio.gather(self.handle_ups())
+            futs = asyncio.gather(self.handle_ups(), poll_task)
             self.d.loop.run_until_complete(futs)
 
     def quit(self):
