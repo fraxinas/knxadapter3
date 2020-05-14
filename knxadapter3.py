@@ -92,7 +92,7 @@ class KnxAdapter():
         log.debug("sending to knx:{!r}".format(xml))
         self.knx_client_writer.write(xml.encode(encoding='utf_8'))
         self.knx_client_writer.drain()
-        data = await asyncio.wait_for(self.knx_client_reader.readline(), timeout=10.0)
+        data = await asyncio.wait_for(self.knx_client_reader.readline(), timeout=30.0)
         log.debug("received {!r}".format(data.decode()))
 
     def start(self):
@@ -103,14 +103,17 @@ class KnxAdapter():
         knx_server_coro = asyncio.start_server(self.knx_server_handler, self.cfg["sys"]["listenHost"], self.cfg["linknx"]["listenPort"], loop=self.loop)
         knx_server = self.loop.run_until_complete(knx_server_coro)
 
-        weather_station = WeatherStation(self)
-        weather_station.run()
+        services = []
+        services.append(WeatherStation(self))
+        services.append(PioneerAVR(self))
+        services.append(ApcUps(self))
+        services.append(SmartMeter(self))
 
-        pioneer_avr = PioneerAVR(self)
-        tasks = pioneer_avr.run()
-
-        apcups = ApcUps(self)
-        tasks += apcups.run()
+        tasks = []
+        for service in services:
+            task = service.run()
+            if task:
+                tasks += task
 
         futs = asyncio.gather(*tasks)
         log.info("tasks={!r}\ntasks={!r}".format(tasks, futs))
@@ -123,7 +126,8 @@ class KnxAdapter():
         finally:
             knx_server.close()
             self.loop.run_until_complete(knx_server.wait_closed())
-            weather_station.quit()
+            for service in services:
+                service.quit()
             self.loop.close()
 
 class WeatherStation():
@@ -137,9 +141,8 @@ class WeatherStation():
     def __init__(self, daemon):
         self.previous_values = {}
         self.d = daemon
-        self.ws_app = web.Application(debug=True)
-        self.ws_app.router.add_get('/weatherstation/{name}', self.handle)
-        self.ws_handler = self.ws_app.make_handler()
+        self.ws_app = None
+        self.ws_handler = None
         self.ws_server = None
 
     async def process_values(self, query):
@@ -194,22 +197,28 @@ class WeatherStation():
 
     def run(self):
         if self.d.cfg["weather_station"]["enabled"]:
+            self.ws_app = web.Application(debug=True)
+            self.ws_app.router.add_get('/weatherstation/{name}', self.handle)
+            self.ws_handler = self.ws_app.make_handler()
             log.info("running weather station receiver...")
             ws_coro = self.d.loop.create_server(self.ws_handler, self.d.cfg["sys"]["listenHost"], self.d.cfg["weather_station"]["listenPort"])
             self.ws_server = self.d.loop.run_until_complete(ws_coro)
+            return None
 
     def quit(self):
-        log.info("quit weather station receiver...")
-        self.ws_server.close()
-        self.d.loop.run_until_complete(self.ws_app.shutdown())
-        self.d.loop.run_until_complete(self.ws_handler.shutdown(2.0))
-        self.d.loop.run_until_complete(self.ws_app.cleanup())
+        if self.ws_server:
+            log.info("quit weather station receiver...")
+            self.ws_server.close()
+            self.d.loop.run_until_complete(self.ws_app.shutdown())
+            self.d.loop.run_until_complete(self.ws_handler.shutdown(2.0))
+            self.d.loop.run_until_complete(self.ws_app.cleanup())
 
 class PioneerAVR():
     def __init__(self, daemon):
         self.current_values = {}
         self.accu_word = None
         self.d = daemon
+        self.avr_client = None
         self.avr_reader = None
         self.avr_writer = None
         daemon.knx_read_cbs.append(self.process_knx)
@@ -324,17 +333,18 @@ class PioneerAVR():
         if self.d.cfg["avr"]["enabled"]:
             log.info("running Pioneer AVR Client...")
             self.avr_client = self.d.loop.run_until_complete(self.avr_client(self.d.loop, self.d.cfg["avr"]))
-            log.info("self.avr_client {!r}".format(self.avr_client))
             return [self.handle_avr()]
 
     def quit(self):
-        log.info("quit Pioneer AVR Client...")
-        self.avr_client.close()
+        if self.avr_client:
+            log.info("quit Pioneer AVR Client...")
+            self.avr_client.close()
 
 class ApcUps():
     def __init__(self, daemon):
         self.current_values = {}
         self.d = daemon
+        self.ups_client = None
         self.ups_reader = None
         self.ups_writer = None
         self.obj_list = []
@@ -427,8 +437,119 @@ class ApcUps():
             return [self.handle_ups(), poll_task]
 
     def quit(self):
-        log.info("quit APC UPS Client...")
-        self.ups_client.close()
+        if self.ups_client:
+            log.info("quit APC UPS Client...")
+            self.ups_client.close()
+
+class SmartMeter():
+    def _read_i32(self,register):
+        r1=self.client.read_holding_registers(register,2,unit=71)
+        U32register = self.modbus_bin_pay_dec.fromRegisters(r1.registers, byteorder=self.endianness, wordorder=self.endianness)
+        result_U32register = U32register.decode_32bit_int()
+        return result_U32register
+
+    def _read_u64(self,register):
+        r1=self.client.read_holding_registers(register,4,unit=71)
+        U64register = self.modbus_bin_pay_dec.fromRegisters(r1.registers, byteorder=self.endianness, wordorder=self.endianness)
+        result_U64register = U64register.decode_64bit_uint()
+        return result_U64register
+
+    def _read_u32(self,register):
+        r1=self.client.read_holding_registers(register,2,unit=71)
+        U32register = self.modbus_bin_pay_dec.fromRegisters(r1.registers, byteorder=self.endianness, wordorder=self.endianness)
+        result_U32register = U32register.decode_32bit_uint()
+        return result_U32register
+
+    def _read_modbus(self, data_type, register):
+        methods = {"I32": self._read_i32, "U32": self._read_u32, "U64": self._read_u64}
+        ret = None
+        try:
+            func = methods[data_type]
+            ret = func(register)
+        except KeyError:
+            log.warning("Smart Meter Data Type {} not found for register {}".format(data_type, register))
+        except:
+            log.warning("Couldn't read register {} from Smart Meter".format(register))
+        return ret
+
+    def __init__(self, daemon):
+        modbuslog = logging.getLogger('pymodbus')
+        modbuslog.setLevel(logging.ERROR)
+
+        self.current_values = {}
+        self.d = daemon
+        self.client = None
+        self.obj_list = []
+        cfg = self.d.cfg["smart_meter"]
+        self.default_magnitude = "default_magnitude" in cfg and cfg["default_magnitude"] or 1.0
+        self.default_hysteresis = "default_hysteresis" in cfg and cfg["default_hysteresis"] or 0
+
+        for o in self.d.cfg["smart_meter"]["objects"]:
+            if o["enabled"]:
+                o.update({"value": 0, "previous_value": 0})
+                self.obj_list.append(o)
+
+    async def handle_sm(self):
+        log.debug('handle_sm...')
+        from pymodbus.constants import Endian
+        from pymodbus.payload import BinaryPayloadDecoder
+        self.endianness = Endian.Big
+        self.modbus_bin_pay_dec = BinaryPayloadDecoder
+        while True:
+            sequence = ""
+
+            for o in self.obj_list:
+                register = o["register"]
+                raw_val = self._read_modbus(o["data_type"], o["register"])
+                if raw_val is None:
+                    continue
+                prev_val = o["value"]
+
+                mag = ("magnitude" in o and o["magnitude"] or self.default_magnitude)
+
+                if o["data_type"] == "U64":
+                    value = int(round(raw_val * mag, 0))
+                else:
+                    value = round(raw_val * mag, 3)
+
+                debug_msg = "Smart Meter read {} raw={} => value={}".format(o["knx_group"], raw_val, value)
+
+                hysteresis = "hysteresis" in o and o["hysteresis"] or self.default_hysteresis
+
+                if hysteresis and abs(value - prev_val) <= hysteresis:
+                    log.debug("{0} {1}-{2:g}<{3:g} hysteresis, ignored!".format(debug_msg, value, prev_val, hysteresis))
+                    continue
+                elif prev_val == value:
+                    log.debug("{!r} unchanged, ignored!".format(debug_msg))
+                    continue
+                else:
+                    log.debug(debug_msg)
+
+                str_value = "%.2f" % value if o["data_type"]!="U64" else str(value)
+                sequence += '<object id="%s" value="%s"/>' % (o["knx_group"], str_value)
+
+                o["previous_value"] = prev_val
+                o["value"] = value
+
+            if sequence:
+                await self.d.send_knx(sequence)
+
+            await asyncio.sleep(1)
+
+    def run(self):
+        cfg = self.d.cfg["smart_meter"]
+        if cfg["enabled"]:
+            import pymodbus
+            from pymodbus.client.sync import ModbusTcpClient
+            log.info("running Smart Meter Client...")
+            self.client = ModbusTcpClient(cfg["host"],port=cfg["port"])
+            self.client.connect()
+            handle_task = self.d.loop.create_task(self.handle_sm())
+            return [handle_task]
+
+    def quit(self):
+        if self.client:
+            log.info("quit Smart Meter Client...")
 
 if __name__ == "__main__":
     knx_adapter = KnxAdapter(sys.argv[1:])

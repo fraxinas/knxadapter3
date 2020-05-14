@@ -168,5 +168,429 @@
             "enabled":true
         }
     ]
+  },
+  "smart_meter": {
+    "enabled":true,
+    "host":"ksem-host",
+    "port":502,
+    "default_hysteresis":1.0,
+    "default_magnitude":0.1,
+    "objects":[
+        {
+            "register":0,
+            "knx_group":"sensors:photovoltaic:consumption_active_leistung",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":2,
+            "knx_group":"sensors:photovoltaic:feed_active_leistung",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":4,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_leistung",
+            "data_type":"U32",
+            "enabled":true
+        },
+        {
+            "register":6,
+            "knx_group":"sensors:photovoltaic:feed_reactive_leistung",
+            "data_type":"U32",
+            "enabled":true
+        },
+        {
+            "register":16,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_leistung",
+            "data_type":"U32",
+            "enabled":true
+        },
+        {
+            "register":18,
+            "knx_group":"sensors:photovoltaic:feed_apparent_leistung",
+            "data_type":"U32",
+            "enabled":true
+        },
+        {
+            "register":24,
+            "knx_group":"sensors:photovoltaic:power_factor",
+            "data_type":"I32",
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":26,
+            "knx_group":"sensors:photovoltaic:frequency",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":40,
+            "knx_group":"sensors:photovoltaic:consumption_active_leistung_l1",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":42,
+            "knx_group":"sensors:photovoltaic:feed_active_leistung_l1",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":44,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_leistung_l1",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":46,
+            "knx_group":"sensors:photovoltaic:feed_reactive_leistung_l1",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":56,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_leistung_l1",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":58,
+            "knx_group":"sensors:photovoltaic:feed_apparent_leistung_l1",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":60,
+            "knx_group":"sensors:photovoltaic:current_l1",
+            "data_type":"U32",
+            "enabled":true,
+            "hysteresis": 0.2,
+            "magnitude":0.001
+        },
+        {
+            "register":62,
+            "knx_group":"sensors:photovoltaic:voltage_l1",
+            "data_type":"U32",
+            "enabled":true,
+            "hysteresis": 0.2,
+            "magnitude":0.001
+        },
+        {
+            "register":64,
+            "knx_group":"sensors:photovoltaic:power_factor_l2",
+            "data_type":"I32",
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":80,
+            "knx_group":"sensors:photovoltaic:consumption_active_leistung_l2",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":82,
+            "knx_group":"sensors:photovoltaic:feed_active_leistung_l2",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":84,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_leistung_l2",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":86,
+            "knx_group":"sensors:photovoltaic:feed_reactive_leistung_l2",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":96,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_leistung_l2",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":98,
+            "knx_group":"sensors:photovoltaic:feed_apparent_leistung_l2",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":100,
+            "knx_group":"sensors:photovoltaic:current_l2",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":102,
+            "knx_group":"sensors:photovoltaic:voltage_l2",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":104,
+            "knx_group":"sensors:photovoltaic:power_factor_l3",
+            "data_type":"I32",
+            "hysteresis": 10.0,
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":120,
+            "knx_group":"sensors:photovoltaic:consumption_active_leistung_l3",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":122,
+            "knx_group":"sensors:photovoltaic:feed_active_leistung_l3",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true
+        },
+        {
+            "register":124,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_leistung_l3",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":126,
+            "knx_group":"sensors:photovoltaic:feed_reactive_leistung_l3",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":136,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_leistung_l3",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":138,
+            "knx_group":"sensors:photovoltaic:feed_apparent_leistung_l3",
+            "data_type":"U32",
+            "hysteresis": 10.0,
+            "enabled":true
+        },
+        {
+            "register":140,
+            "knx_group":"sensors:photovoltaic:current_l3",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":142,
+            "knx_group":"sensors:photovoltaic:voltage_l3",
+            "data_type":"U32",
+            "hysteresis": 0.2,
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":144,
+            "knx_group":"sensors:photovoltaic:power_factor_l3",
+            "data_type":"I32",
+            "enabled":true,
+            "magnitude":0.001
+        },
+        {
+            "register":512,
+            "knx_group":"sensors:photovoltaic:consumption_active_energy",
+            "data_type":"U64",
+            "enabled":true
+        },
+        {
+            "register":516,
+            "knx_group":"sensors:photovoltaic:feed_active_energy",
+            "data_type":"U64",
+            "enabled":true
+        },
+        {
+            "register":520,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_energy",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":524,
+            "knx_group":"sensors:photovoltaic:feed_reactive_energy",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":544,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_energy",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":548,
+            "knx_group":"sensors:photovoltaic:feed_apparent_energy",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":592,
+            "knx_group":"sensors:photovoltaic:consumption_active_energy_l1",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":596,
+            "knx_group":"sensors:photovoltaic:feed_active_energy_l1",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":600,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_energy_l1",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":604,
+            "knx_group":"sensors:photovoltaic:feed_reactive_energy_l1",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":624,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_energy_l1",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":628,
+            "knx_group":"sensors:photovoltaic:feed_apparent_energy_l1",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":672,
+            "knx_group":"sensors:photovoltaic:consumption_active_energy_l2",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":575,
+            "knx_group":"sensors:photovoltaic:feed_active_energy_l2",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":680,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_energy_l2",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":684,
+            "knx_group":"sensors:photovoltaic:feed_reactive_energy_l2",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":704,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_energy_l2",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":708,
+            "knx_group":"sensors:photovoltaic:feed_apparent_energy_l2",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":752,
+            "knx_group":"sensors:photovoltaic:consumption_active_energy_l3",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":756,
+            "knx_group":"sensors:photovoltaic:feed_active_energy_l3",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":760,
+            "knx_group":"sensors:photovoltaic:consumption_reactive_energy_l3",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":764,
+            "knx_group":"sensors:photovoltaic:feed_reactive_energy_l3",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":784,
+            "knx_group":"sensors:photovoltaic:consumption_apparent_energy_l3",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        },
+        {
+            "register":788,
+            "knx_group":"sensors:photovoltaic:feed_apparent_energy_l3",
+            "data_type":"U64",
+            "hysteresis": 10,
+            "enabled":true
+        }
+    ]
   }
 }
