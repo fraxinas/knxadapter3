@@ -515,9 +515,8 @@ class SmartMeter():
                 debug_msg = "Smart Meter read {} raw={} => value={}".format(o["knx_group"], raw_val, value)
 
                 hysteresis = "hysteresis" in o and o["hysteresis"] or self.default_hysteresis
-
-                if hysteresis and abs(value - prev_val) <= hysteresis:
-                    log.debug("{0} {1}-{2:g}<{3:g} hysteresis, ignored!".format(debug_msg, value, prev_val, hysteresis))
+                if type(hysteresis) == str and "%" in hysteresis and abs(value - prev_val) <= float(hysteresis.strip('%'))*value*0.01 or type(hysteresis) == float and abs(value - prev_val) <= hysteresis:
+                    log.debug("{0} {1}-{2:g}<{3} hysteresis, ignored!".format(debug_msg, value, prev_val, hysteresis))
                     continue
                 elif prev_val == value:
                     log.debug("{!r} unchanged, ignored!".format(debug_msg))
