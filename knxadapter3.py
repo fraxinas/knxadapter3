@@ -68,6 +68,8 @@ class KnxAdapter():
         self.knx_client_reader = None
         self.knx_client_writer = None
 
+        self._knx_lock = asyncio.Lock()
+
         self.loop = asyncio.get_event_loop()
         self.knx_read_cbs = []
 
@@ -88,12 +90,13 @@ class KnxAdapter():
         writer.close()
 
     async def send_knx(self, sequence):
-        xml = '<write>' + sequence + '</write>\n\x04'
-        log.debug("sending to knx:{!r}".format(xml))
-        self.knx_client_writer.write(xml.encode(encoding='utf_8'))
-        self.knx_client_writer.drain()
-        data = await asyncio.wait_for(self.knx_client_reader.readline(), timeout=30.0)
-        log.debug("received {!r}".format(data.decode()))
+        async with self._knx_lock:
+            xml = '<write>' + sequence + '</write>\n\x04'
+            log.debug("sending to knx:{!r}".format(xml))
+            self.knx_client_writer.write(xml.encode(encoding='utf_8'))
+            self.knx_client_writer.drain()
+            data = await asyncio.wait_for(self.knx_client_reader.readline(), timeout=30.0)
+            log.debug("received {!r}".format(data.decode()))
 
     def start(self):
         log.info("Started KNX Bus Adapter Deamon.")
@@ -116,7 +119,7 @@ class KnxAdapter():
                 tasks += task
 
         futs = asyncio.gather(*tasks)
-        log.info("tasks={!r}\ntasks={!r}".format(tasks, futs))
+        #log.info("tasks={!r}\nfuts={!r}".format(tasks, futs))
         self.loop.run_until_complete(futs)
 
         try:
@@ -218,7 +221,7 @@ class PioneerAVR():
         self.current_values = {}
         self.accu_word = None
         self.d = daemon
-        self.avr_client = None
+        self.client = None
         self.avr_reader = None
         self.avr_writer = None
         daemon.knx_read_cbs.append(self.process_knx)
@@ -332,19 +335,19 @@ class PioneerAVR():
     def run(self):
         if self.d.cfg["avr"]["enabled"]:
             log.info("running Pioneer AVR Client...")
-            self.avr_client = self.d.loop.run_until_complete(self.avr_client(self.d.loop, self.d.cfg["avr"]))
+            self.client = self.d.loop.run_until_complete(self.avr_client(self.d.loop, self.d.cfg["avr"]))
             return [self.handle_avr()]
 
     def quit(self):
-        if self.avr_client:
+        if self.client:
             log.info("quit Pioneer AVR Client...")
-            self.avr_client.close()
+            self.client.close()
 
 class ApcUps():
     def __init__(self, daemon):
         self.current_values = {}
         self.d = daemon
-        self.ups_client = None
+        self.client = None
         self.ups_reader = None
         self.ups_writer = None
         self.obj_list = []
@@ -432,14 +435,14 @@ class ApcUps():
     def run(self):
         if self.d.cfg["ups"]["enabled"]:
             log.info("running APC UPS Client...")
-            self.ups_client = self.d.loop.run_until_complete(self.ups_client(self.d.loop, self.d.cfg["ups"]))
+            self.client = self.d.loop.run_until_complete(self.ups_client(self.d.loop, self.d.cfg["ups"]))
             poll_task = self.d.loop.create_task(self.poll_ups())
             return [self.handle_ups(), poll_task]
 
     def quit(self):
-        if self.ups_client:
+        if self.client:
             log.info("quit APC UPS Client...")
-            self.ups_client.close()
+            self.client.close()
 
 class SmartMeter():
     def _read_i32(self,register):
