@@ -88,8 +88,6 @@ class ModbusDevice(BasePlugin):
         while True:
             sequence = ""
 
-            print("obj_list:", self.obj_list)
-
             for o in self.obj_list:
                 register = o["register"]
                 raw_val = self._read_modbus(o["data_type"], o["register"])
