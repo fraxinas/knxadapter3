@@ -96,10 +96,12 @@ class ModbusDevice(BasePlugin):
                 prev_val = o["value"]
 
                 mag = o["magnitude"]
-                if o["data_type"] == "U64":
+                if o["data_type"].startswith("U"):
                     value = int(round(raw_val * mag, 0))
+                    str_value = str(value)
                 else:
                     value = round(raw_val * mag, 3)
+                    str_value = "%.2f" % value
 
                 debug_msg = "{} read {} raw={} => value={}".format(self.device_name, o["knx_group"], raw_val, value)
 
@@ -113,7 +115,6 @@ class ModbusDevice(BasePlugin):
                 else:
                     log.debug(debug_msg)
 
-                str_value = "%.2f" % value if o["data_type"]!="U64" else str(value)
                 sequence += '<object id="%s" value="%s"/>' % (o["knx_group"], str_value)
 
                 o["value"] = value
