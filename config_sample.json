@@ -602,6 +602,49 @@
                 "enabled":true
             }
         ]
+    },
+    {
+        "class":"daikin_ac",
+        "name":"Daikin Perfera AC",
+        "enabled":true,
+        "host":"daikin-host",
+        "objects":[
+            {
+                "ac_object":"power",
+                "knx_group":"climate:ac:power",
+                "enabled":true
+            },
+            {
+                "ac_object":"fan_rate",
+                "knx_group":"climate:ac:fan",
+                "enabled":true
+            },
+            {
+                "ac_object":"fan_direction",
+                "knx_group":"climate:ac:fan_direction",
+                "enabled":true
+            },
+            {
+                "ac_object":"target_temperature",
+                "knx_group":"climate:ac:target_temperature",
+                "enabled":true
+            },
+            {
+                "ac_object":"mode",
+                "knx_group":"climate:ac:mode",
+                "enabled":true
+            },
+            {
+                "ac_object":"inside_temperature",
+                "knx_group":"sensors:inside:ac",
+                "enabled":"read-only"
+            },
+            {
+                "ac_object":"outside_temperature",
+                "knx_group":"sensors:outside:ac",
+                "enabled":"read-only"
+            }
+        ]
     }
   ]
 }
