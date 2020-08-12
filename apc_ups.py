@@ -32,6 +32,7 @@ class ApcUps(BasePlugin):
             ups_expr = obj["ups_expr"]
             self.expression += ups_expr + '.*?'
             group = obj["knx_group"]
+        self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
 
     async def ups_client(self, loop):
         self.ups_reader, self.ups_writer = await asyncio.open_connection(
@@ -43,7 +44,7 @@ class ApcUps(BasePlugin):
             print ("polling ups", hello)
             self.ups_writer.write(hello)
             await self.ups_writer.drain()
-            await asyncio.sleep(10)
+            await asyncio.sleep(self.poll_interval)
 
     async def handle_ups(self):
         log.debug('handle_ups...')

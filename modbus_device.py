@@ -70,6 +70,7 @@ class ModbusDevice(BasePlugin):
         modbuslog = logging.getLogger('pymodbus')
         modbuslog.setLevel(logging.ERROR)
 
+        self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
         default_magnitude = "default_magnitude" in self.cfg and self.cfg["default_magnitude"] or 1.0
         for obj in self.obj_list:
             if not "magnitude" in obj:
@@ -122,7 +123,7 @@ class ModbusDevice(BasePlugin):
             if sequence:
                 await self.d.send_knx(sequence)
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(self.poll_interval)
 
     def _run(self):
         import pymodbus

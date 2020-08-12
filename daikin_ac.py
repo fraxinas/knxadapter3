@@ -51,6 +51,7 @@ class DaikinAC(BasePlugin):
     def __init__(self, daemon, cfg):
         super(DaikinAC, self).__init__(daemon, cfg)
         daemon.knx_read_cbs.append(self.process_knx)
+        self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
         for obj in cfg["objects"]:
             if obj["enabled"]:
                 obj.update({"value": None})
@@ -87,7 +88,7 @@ class DaikinAC(BasePlugin):
                 log.debug("skipped objects: "+', '.join(log_msg))
                 log_msg = []
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(self.poll_interval)
 
     def _get_devobj_by_knxgrp(self, knx_group):
         return next(item for item in self.obj_list if item["knx_group"] == knx_group)["ac_object"]
