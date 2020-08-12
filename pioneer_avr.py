@@ -28,10 +28,9 @@ class PioneerAVR(BasePlugin):
         self.avr_writer = None
         self.accu_word = None
         daemon.knx_read_cbs.append(self.process_knx)
-        print("obj_list:", self.obj_list)
+        log.debug("{} obj_list: {!r}".format(self.device_name, self.obj_list))
 
     async def avr_client(self, loop):
-        print ("async def avr_client....")
         self.avr_reader, self.avr_writer = await asyncio.open_connection(
             self.cfg["host"], self.cfg["port"], loop=loop)
 

@@ -41,46 +41,38 @@ class ApcUps(BasePlugin):
     async def poll_ups(self):
         while True:
             hello = (chr(0)+chr(6)+"status").encode('ascii')
-            print ("polling ups", hello)
+            log.debug("{} polling APCD: {!r}".format(self.device_name, hello))
             self.ups_writer.write(hello)
             await self.ups_writer.drain()
             await asyncio.sleep(self.poll_interval)
 
     async def handle_ups(self):
-        log.debug('handle_ups...')
         while True:
             data = await self.ups_reader.readuntil(b'\x00\x00')
-            log.debug('ups received {!r}'.format(data))
+            debug_msg = []
 
             if not data:
                 break
             
             data = data.decode('ascii')
-
-            log.debug('received apcups data {!r}'.format(data))
-
             m = re.match(self.expression, data, re.DOTALL)
-            log.debug("match: "+str(m))
 
             if m:
-                print(m.groups())
                 sequence = ""
-                
                 for idx, o in enumerate(self.obj_list):
                     group = o["knx_group"]
                     val = m.groups(0)[idx]
-                    debug_msg = "idx: {0} group: {1} val: {2}".format(idx, group, val)
+                    debug_line = "idx: {} group: {} val: {}".format(idx, group, val)
                     prev_val = o["value"]
                     try:
                         value = float(val)
-                        debug_msg += " numeric value: {0:g}".format(value)
+                        debug_line += " numeric value: {0:g}".format(value)
                         hysteresis = o["hysteresis"]
                         if type(hysteresis) == str and "%" in hysteresis and abs(value - prev_val) <= float(hysteresis.strip('%'))*value*0.01 or type(hysteresis) == float and abs(value - prev_val) <= hysteresis:
-                            log.debug("{0} {1}-{2:g} < {3:g} hysteresis, ignored!".
-                                format(group, value, prev_val, hysteresis))
+                            debug_msg.append("{}-{:g} < {:g} hysteresis, ignored!".format(debug_line, prev_val, hysteresis))
                             continue
                         elif prev_val == value:
-                            log.debug("{!r} unchanged, ignored!".format(debug_msg))
+                            debug_msg.append("{} unchanged, ignored!".format(debug_line))
                             continue
                         sequence += '<object id="%s" value="%.2f"/>' % (group, value)
                     
@@ -89,17 +81,22 @@ class ApcUps(BasePlugin):
                             value = "true"
                         elif val == "ONBATT":
                             value = "false"
-                        debug_msg += " non-numeric value: {0}->{1}".format(val, value)
+                        debug_line += " non-numeric value: ->{}".format(value)
                         if prev_val == value:
-                            log.debug("{!r} unchanged, ignored!".format(debug_msg))
+                            debug_msg.append("{} unchanged, ignored!".format(debug_line))
                             continue
                         sequence += '<object id="%s" value="%s"/>' % (group, value)
 
                     o["value"] = value
-                    log.debug(debug_msg)
+                    debug_msg.append(debug_line)
+
+                log.debug("{} {!r}\t".format(self.device_name, data)+"\n\t".join(debug_msg))
 
                 if sequence:
                     await self.d.send_knx(sequence)
+
+            else:
+                log.warning("{} Couldn't parse {!r}".format(self.device_name, data))
 
     def _run(self):
         self.client = self.d.loop.run_until_complete(self.ups_client(self.d.loop))

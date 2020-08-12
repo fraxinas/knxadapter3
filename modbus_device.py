@@ -111,7 +111,7 @@ class ModbusDevice(BasePlugin):
                     log.debug("{0} {1}-{2:g} < {3} hysteresis, ignored!".format(debug_msg, value, prev_val, hysteresis))
                     continue
                 elif prev_val == value:
-                    log.debug("{!r} unchanged, ignored!".format(debug_msg))
+                    log.debug("{} unchanged, ignored!".format(debug_msg))
                     continue
                 else:
                     log.debug(debug_msg)

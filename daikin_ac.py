@@ -55,7 +55,7 @@ class DaikinAC(BasePlugin):
         for obj in cfg["objects"]:
             if obj["enabled"]:
                 obj.update({"value": None})
-        log.debug("Daikin AC obj_list: {!r}".format(self.obj_list))
+        log.debug("{} obj_list: {!r}".format(self.device_name, self.obj_list))
 
     async def handle_ac(self):
         log_msg = []
@@ -85,7 +85,7 @@ class DaikinAC(BasePlugin):
                 await self.d.send_knx(sequence)
             
             if log_msg:
-                log.debug("skipped objects: "+', '.join(log_msg))
+                log.debug(self.device_name+" skipped objects: "+', '.join(log_msg))
                 log_msg = []
 
             await asyncio.sleep(self.poll_interval)
@@ -99,30 +99,31 @@ class DaikinAC(BasePlugin):
     async def process_knx(self, cmd):
         msg = None
         try:
-            knx_grp, value = cmd.split("=")
-            log.debug("knx_grp={!r} value={!r}".format(knx_grp, value))
-            ac_obj = self._get_devobj_by_knxgrp(knx_grp)
+            knx_grp, raw = cmd.split("=")
+            debug_msg = "{} knx group {} raw={}".format(self.device_name, knx_grp, raw)
 
+            ac_obj = self._get_devobj_by_knxgrp(knx_grp)
             if not ac_obj or ac_obj not in [x["ac_object"] for x in self.obj_list]:
-                log.warn("ac_obj {!r} not found".format(ac_obj))
+                log.warning("{} ac_obj not found".format(debug_msg))
                 return
 
             if ac_obj == "fan_rate":
-                if value == "0":
+                if raw == "0":
                     value = "A"
-                elif value == "1":
+                elif raw== "1":
                     value = "B"
-            elif value in ["off", "false", "disable", "stop", "inactive"]:
+            elif raw in ["off", "false", "disable", "stop", "inactive"]:
                 value = 0
-            elif value in ["on", "true", "enable", "start", "active"]:
+            elif raw in ["on", "true", "enable", "start", "active"]:
                 value = 1
+            else:
+                value = raw
 
             if str(value) == str(self._get_value_by_acobj(ac_obj)):
-                log.debug("ac_obj {!r} value {!r} unchanged!".format(ac_obj, value))
+                log.debug("{} ac_obj {} unchanged value {}, ignored!".format(debug_msg, ac_obj, value))
                 return
 
-            log.debug("ac_obj={!r} value {!r}=>{!r}".format(ac_obj, self._get_value_by_acobj(ac_obj), value))
-
+            log.debug("{} ac_obj {} updated value {}=>{}".format(debug_msg, ac_obj, self._get_value_by_acobj(ac_obj), value))
             setattr(self._client, ac_obj, value)
 
         except:

@@ -88,7 +88,11 @@ class KnxAdapter():
             self.knx_client_writer.write(xml.encode(encoding='utf_8'))
             self.knx_client_writer.drain()
             data = await asyncio.wait_for(self.knx_client_reader.readline(), timeout=30.0)
-            log.debug("received {!r}".format(data.decode()))
+            decoded = data.decode()
+            if "<write status='error'>" in decoded:
+                log.error("LinKNX {}".format(decoded[1:-1]))
+            else:
+                log.debug("LinKNX {!r}".format(decoded))
 
     def start(self):
         log.info("Started KNX Bus Adapter Deamon.")
