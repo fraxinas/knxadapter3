@@ -107,11 +107,11 @@ class DaikinAC(BasePlugin):
                 log.warn("ac_obj {!r} not found".format(ac_obj))
                 return
 
-            if "ac_obj" == "fan_rate":
+            if ac_obj == "fan_rate":
                 if value == "0":
-                    value = A
-                if value == "1":
-                    value = B
+                    value = "A"
+                elif value == "1":
+                    value = "B"
             elif value in ["off", "false", "disable", "stop", "inactive"]:
                 value = 0
             elif value in ["on", "true", "enable", "start", "active"]:
