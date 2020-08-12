@@ -97,24 +97,21 @@ class ModbusDevice(BasePlugin):
                 prev_val = o["value"]
 
                 mag = o["magnitude"]
-                if o["data_type"].startswith("U"):
-                    value = int(round(raw_val * mag, 0))
-                    str_value = str(value)
-                else:
-                    value = round(raw_val * mag, 3)
-                    str_value = "%.2f" % value
+                value = round(raw_val * o["magnitude"], 3)
 
                 debug_msg = "{} read {} raw={} => value={}".format(self.device_name, o["knx_group"], raw_val, value)
 
                 hysteresis = o["hysteresis"]
-                if type(hysteresis) == str and "%" in hysteresis and abs(value - prev_val) <= float(hysteresis.strip('%'))*value*0.01 or type(hysteresis) == float and abs(value - prev_val) <= hysteresis:
-                    log.debug("{0} {1}-{2:g} < {3} hysteresis, ignored!".format(debug_msg, value, prev_val, hysteresis))
+                if type(hysteresis) == str and "%" in hysteresis and abs(value - prev_val) <= float(hysteresis.strip('%'))*value*0.01 or type(hysteresis) in (int, float) and abs(value - prev_val) <= hysteresis:
+                    log.debug("{}-{} < {} hysteresis, ignored!".format(debug_msg, prev_val, hysteresis))
                     continue
                 elif prev_val == value:
                     log.debug("{} unchanged, ignored!".format(debug_msg))
                     continue
                 else:
-                    log.debug(debug_msg)
+                    log.debug("{} UPDATED from {}".format(debug_msg,prev_val))
+
+                str_value = "%.2f" % value
 
                 sequence += '<object id="%s" value="%s"/>' % (o["knx_group"], str_value)
 
