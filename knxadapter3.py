@@ -29,6 +29,7 @@ from helper import setLogLevel, knxalog as log
 import apc_ups
 import daikin_ac
 import modbus_device
+import mqtt
 import pioneer_avr
 import weather_station
 
@@ -36,6 +37,7 @@ PLUGINS = {
     "apc_ups": apc_ups.ApcUps,
     "daikin_ac": daikin_ac.DaikinAC,
     "modbus_device": modbus_device.ModbusDevice,
+    "mqtt": mqtt.MQTT,
     "pioneer_avr": pioneer_avr.PioneerAVR,
     "weather_station": weather_station.WeatherStation
 }
