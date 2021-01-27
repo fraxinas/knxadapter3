@@ -72,9 +72,12 @@ class ModbusDevice(BasePlugin):
 
         self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
         default_magnitude = "default_magnitude" in self.cfg and self.cfg["default_magnitude"] or 1.0
+        default_precision = "default_precision" in self.cfg and self.cfg["default_precision"] or 0
         for obj in self.obj_list:
             if not "magnitude" in obj:
                 obj.update({"magnitude": default_magnitude})
+            if not "precision" in obj:
+                obj.update({"precision": default_precision})
 
     async def handle_sm(self):
         log.debug('handle_sm...')
@@ -111,8 +114,8 @@ class ModbusDevice(BasePlugin):
                 else:
                     log.debug("{} UPDATED from {}".format(debug_msg,prev_val))
 
-                str_value = "%.2f" % value
-
+                prec = o["precision"]
+                str_value = "%.{}f".format(prec) % round(value, prec)
                 sequence += '<object id="%s" value="%s"/>' % (o["knx_group"], str_value)
 
                 o["value"] = value
