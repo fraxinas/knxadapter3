@@ -43,8 +43,10 @@ class BasePlugin:
 
     def run(self):
         if self.cfg["enabled"]:
-            knxalog.info("running client for {}...".format(self.device_name))
-            return self._run()
+            runner = self._run()
+            if runner:
+                knxalog.info("running client for {}...".format(self.device_name))
+                return runner
 
     def quit(self):
         if self.client:

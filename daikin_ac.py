@@ -20,32 +20,7 @@
 
 import asyncio
 import logging
-from daikinapi import Daikin
 from helper import BasePlugin, knxalog as log
-
-class DaikinCtrl(Daikin):
-    def __init__(self, host):       
-        super(DaikinCtrl, self).__init__(host)
-
-        reqlog = logging.getLogger('urllib3')
-        reqlog.setLevel(logging.WARNING)
-
-        self._cached_ctrl_fields = {}
-        self._cached_sens_fields = {}
-
-    def receive_info(self):
-        self._cached_ctrl_fields = self._get("/aircon/get_control_info")
-        log.debug("Daikin AC Control Fields {!r}".format(self._cached_ctrl_fields))
-        self._cached_sens_fields = self._get("/aircon/get_sensor_info")
-        log.debug("Daikin AC Sensor Fields {!r}".format(self._cached_sens_fields))
-
-    def _get_control(self, all_fields=False):
-        """ Replacement for daikinapi function to operate on cached control info """
-        return self._cached_ctrl_fields
-
-    def _get_sensor(self):
-        """ Replacement for daikinapi function to operate on cached sensor info """
-        return self._cached_sens_fields
 
 class DaikinAC(BasePlugin):
     def __init__(self, daemon, cfg):
@@ -120,7 +95,7 @@ class DaikinAC(BasePlugin):
                 value = raw
 
             if str(value) == str(self._get_value_by_acobj(ac_obj)):
-                log.debug("{} ac_obj {} unchanged value {}, ignored!".format(debug_msg, ac_obj, value))
+                log.debug("{} ac_obj {} unchanged value {}->{}, ignored!".format(debug_msg, ac_obj, str(self._get_value_by_acobj(ac_obj)), str(value)))
                 return
 
             log.debug("{} ac_obj {} updated value {}=>{}".format(debug_msg, ac_obj, self._get_value_by_acobj(ac_obj), value))
@@ -130,6 +105,35 @@ class DaikinAC(BasePlugin):
             log.error("Couldn't parse linknx command: {!r}".format(cmd))
 
     def _run(self):
+        try:
+            from daikinapi import Daikin
+            class DaikinCtrl(Daikin):
+                def __init__(self, host):
+                    super(DaikinCtrl, self).__init__(host)
+
+                    reqlog = logging.getLogger('urllib3')
+                    reqlog.setLevel(logging.WARNING)
+
+                    self._cached_ctrl_fields = {}
+                    self._cached_sens_fields = {}
+
+                def receive_info(self):
+                    self._cached_ctrl_fields = self._get("/aircon/get_control_info")
+                    log.debug("Daikin AC Control Fields {!r}".format(self._cached_ctrl_fields))
+                    self._cached_sens_fields = self._get("/aircon/get_sensor_info")
+                    log.debug("Daikin AC Sensor Fields {!r}".format(self._cached_sens_fields))
+
+                def _get_control(self, all_fields=False):
+                    """ Replacement for daikinapi function to operate on cached control info """
+                    return self._cached_ctrl_fields
+
+                def _get_sensor(self):
+                    """ Replacement for daikinapi function to operate on cached sensor info """
+                    return self._cached_sens_fields
+        except ModuleNotFoundError:
+            log.warning("daikinapi module not found, plugin unavailable!")
+            return None
+
         self._client = DaikinCtrl(self.cfg["host"])
         handle_task = self.d.loop.create_task(self.handle_ac())
         return [handle_task]
