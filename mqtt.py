@@ -21,7 +21,6 @@
 import asyncio
 import logging
 from contextlib import AsyncExitStack, asynccontextmanager
-from asyncio_mqtt import Client, MqttError
 from helper import BasePlugin, knxalog as log
 
 class MQTT(BasePlugin):
@@ -33,7 +32,6 @@ class MQTT(BasePlugin):
         self._mqtt_client = None
 
     async def mqtt_loop(self):
-        log.debug('mqtt_loop...')
         while True:
           try:
               await self.mqtt_stack()
@@ -132,5 +130,10 @@ class MQTT(BasePlugin):
         next(item for item in self.obj_list if item.get("publish_topic") == topic)["value"] = value
 
     def _run(self):
-        loop_task = self.d.loop.create_task(self.mqtt_loop())
-        return [loop_task]
+        try:
+            from asyncio_mqtt import Client
+            loop_task = self.d.loop.create_task(self.mqtt_loop())
+            return [loop_task]
+        except ModuleNotFoundError:
+            log.warning("asyncio_mqtt module not found, plugin unavailable!")
+            return None
