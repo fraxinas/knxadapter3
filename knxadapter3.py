@@ -69,7 +69,7 @@ class KnxAdapter():
 
     async def linknx_client(self, loop, knxcfg):
         self.knx_client_reader, self.knx_client_writer = await asyncio.open_connection(
-            knxcfg["host"], knxcfg["port"], loop=loop)
+            knxcfg["host"], knxcfg["port"])
 
     async def knx_server_handler(self, reader, writer):
         data = await reader.readline()
