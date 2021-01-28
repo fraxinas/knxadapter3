@@ -91,9 +91,10 @@ class MQTT(BasePlugin):
             knx_group, value = cmd.split("=")
             debug_msg = "{} knx {} value={}".format(self.device_name, knx_group, value)
 
-            topic = self._get_topic_by_knxgrp(knx_group)
-            if topic == None:
-                log.warning("{} publish_topic not found".format(debug_msg))
+            try:
+                topic = self._get_topic_by_knxgrp(knx_group)
+            except StopIteration:
+                log.debug("{} no publish_topic for given KNX group, ignored".format(debug_msg))
                 return
 
             prev_val = self._get_value_by_knxgrp(knx_group)

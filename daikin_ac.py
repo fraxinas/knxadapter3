@@ -77,9 +77,10 @@ class DaikinAC(BasePlugin):
             knx_grp, raw = cmd.split("=")
             debug_msg = "{} knx group {} raw={}".format(self.device_name, knx_grp, raw)
 
-            ac_obj = self._get_devobj_by_knxgrp(knx_grp)
-            if not ac_obj or ac_obj not in [x["ac_object"] for x in self.obj_list]:
-                log.warning("{} ac_obj not found".format(debug_msg))
+            try:
+                ac_obj = self._get_devobj_by_knxgrp(knx_grp)
+            except StopIteration:
+                log.debug("{} no AC object for given KNX group, ignored".format(debug_msg))
                 return
 
             if ac_obj == "fan_rate":
