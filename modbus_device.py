@@ -21,6 +21,11 @@
 import asyncio
 import logging
 from helper import BasePlugin, knxalog as log
+import pymodbus
+from pymodbus.client.sync import ModbusTcpClient
+
+def plugin_def():
+    return ModbusDevice
 
 class ModbusDevice(BasePlugin):
     def _read_float(self,register):
@@ -126,8 +131,6 @@ class ModbusDevice(BasePlugin):
             await asyncio.sleep(self.poll_interval)
 
     def _run(self):
-        import pymodbus
-        from pymodbus.client.sync import ModbusTcpClient
         self.client = ModbusTcpClient(self.cfg["host"],port=self.cfg["port"])
         self.client.connect()
         handle_task = self.d.loop.create_task(self.handle_sm())

@@ -22,6 +22,10 @@ import asyncio
 import logging
 from contextlib import AsyncExitStack, asynccontextmanager
 from helper import BasePlugin, knxalog as log
+from asyncio_mqtt import Client, MqttError
+
+def plugin_def():
+    return MQTT
 
 class MQTT(BasePlugin):
     def __init__(self, daemon, cfg):
@@ -39,7 +43,7 @@ class MQTT(BasePlugin):
               log.warning("MqttError: {error}. Reconnecting in {self.poll_interval} seconds.")
           finally:
               await asyncio.sleep(self.poll_interval)
-      
+
     async def mqtt_stack(self):
         async with AsyncExitStack() as stack:
             self._mqtt_tasks = set()
@@ -47,7 +51,7 @@ class MQTT(BasePlugin):
 
             self._mqtt_client = Client(self.cfg["host"],port=self.cfg["port"])
             await stack.enter_async_context(self._mqtt_client)
-            
+
             topics = []
             for o in self.obj_list:
                 topic = o["topic"]
@@ -56,10 +60,10 @@ class MQTT(BasePlugin):
                 messages = await stack.enter_async_context(manager)
                 task = asyncio.create_task(self.mqtt_handle(messages, o))
                 self._mqtt_tasks.add(task)
-            
+
             for topic in topics:
                 await self._mqtt_client.subscribe(topic)
-                
+
             await asyncio.gather(*self._mqtt_tasks)
 
     async def mqtt_handle(self, messages, obj):
@@ -104,7 +108,7 @@ class MQTT(BasePlugin):
 
             task = asyncio.create_task(self._publish_to_topic(topic, value))
             self._mqtt_tasks.add(task)
-            
+
             await asyncio.gather(*self._mqtt_tasks)
 
         except:
@@ -130,10 +134,5 @@ class MQTT(BasePlugin):
         next(item for item in self.obj_list if item.get("publish_topic") == topic)["value"] = value
 
     def _run(self):
-        try:
-            from asyncio_mqtt import Client
-            loop_task = self.d.loop.create_task(self.mqtt_loop())
-            return [loop_task]
-        except ModuleNotFoundError:
-            log.warning("asyncio_mqtt module not found, plugin unavailable!")
-            return None
+        loop_task = self.d.loop.create_task(self.mqtt_loop())
+        return [loop_task]

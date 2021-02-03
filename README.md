@@ -39,10 +39,10 @@ an APC Universal Power Supply to the KNX Bus
 * wrapper for `daikinapi` Air Conditionings
 
 ## prerequisites
-* `knxadapter3.py` requires `python3` with `asyncio` and `aiohttp`
-* additonally `re` for `apc_ups`, `pymodbus` for `modbus_device`, `asyncio_mqtt` for `mqtt`
-* please `cp config_sample.json config.json` and set the respective
-properties, should be self-explanatory
+* `knxadapter3.py` requires `python3` with `asyncio` `importlib`
+* additonally `re` for `apc_ups`, `pymodbus` for `modbus_device`, `asyncio_mqtt` for `mqtt`, `aiohttp` for `weather_station`
+* install these dependencies using `pip install`
+* please `cp config_sample.json config.json` and set the respective properties, should be self-explanatory
 
 ## LinKNX integration
 In order to send data from LinKNX to AC or MQTT devices, it is necessary to create respective rules which transmit the group address and value to knxadapter3 when changed. The rules should look like this:
@@ -64,4 +64,3 @@ In order to send data from LinKNX to AC or MQTT devices, it is necessary to crea
 
 ## Usage
 $ `knxadapter3.py [config-file]`
-

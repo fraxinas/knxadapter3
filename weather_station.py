@@ -21,6 +21,9 @@
 from aiohttp import web
 from helper import BasePlugin, knxalog as log
 
+def plugin_def():
+    return WeatherStation
+
 class WeatherStation(BasePlugin):
     Unit_converter = {
         "mph_to_kmh": lambda v: (v*1.60934),

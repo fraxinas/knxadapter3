@@ -22,6 +22,9 @@ import asyncio
 import re
 from helper import BasePlugin, knxalog as log
 
+def plugin_def():
+    return ApcUps
+
 class ApcUps(BasePlugin):
     def __init__(self, daemon, cfg):
         super(ApcUps, self).__init__(daemon, cfg)

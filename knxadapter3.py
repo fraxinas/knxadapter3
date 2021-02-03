@@ -24,23 +24,10 @@
 import sys
 import json
 import asyncio
+from importlib import import_module
 from helper import setLogLevel, knxalog as log
 
-import apc_ups
-import daikin_ac
-import modbus_device
-import mqtt
-import pioneer_avr
-import weather_station
-
-PLUGINS = {
-    "apc_ups": apc_ups.ApcUps,
-    "daikin_ac": daikin_ac.DaikinAC,
-    "modbus_device": modbus_device.ModbusDevice,
-    "mqtt": mqtt.MQTT,
-    "pioneer_avr": pioneer_avr.PioneerAVR,
-    "weather_station": weather_station.WeatherStation
-}
+PLUGINS = ("apc_ups", "daikin_ac", "modbus_device", "mqtt", "pioneer_avr", "weather_station")
 
 class KnxAdapter():
     def __init__(self, argv):
@@ -105,10 +92,16 @@ class KnxAdapter():
         knx_server = self.loop.run_until_complete(knx_server_coro)
 
         plugins = []
-        for plugin in self.cfg["plugins"]:
-            klass = plugin["class"]
-            if klass in PLUGINS and plugin["enabled"]:
-                plugins.append(PLUGINS[klass](self, plugin))
+        for plugin_config in self.cfg["plugins"]:
+            klass = plugin_config["class"]
+            if klass in PLUGINS and plugin_config["enabled"]:
+                try:
+                    plugin_module = import_module(klass)
+                    plugin_class = plugin_module.plugin_def()
+                    if plugin_class:
+                        plugins.append(plugin_class(self, plugin_config))
+                except ModuleNotFoundError as e:
+                    log.warning("module not found: {}. Plugin '{}' unavailable!".format(e, klass))
 
         tasks = []
         for plugin in plugins:

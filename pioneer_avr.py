@@ -21,6 +21,9 @@
 import asyncio
 from helper import BasePlugin, knxalog as log
 
+def plugin_def():
+    return PioneerAVR
+
 class PioneerAVR(BasePlugin):
     def __init__(self, daemon, cfg):
         super(PioneerAVR, self).__init__(daemon, cfg)
