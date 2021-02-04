@@ -1,6 +1,6 @@
 # knxadapter3
 
-(CC) 2020 by Andreas Frisch <fraxinas@schaffenburg.org>
+(CC) 2020 by Andreas Frisch <fraxinas@purplegecko.de>
 
 ## OwO what's this?
 **`knxadapter3.py` is a universal extensible protocol converter for LinKNX.**
@@ -39,7 +39,7 @@ an APC Universal Power Supply to the KNX Bus
 * wrapper for `daikinapi` Air Conditionings
 
 ## prerequisites
-* `knxadapter3.py` requires `python3` with `asyncio` `importlib`
+* `knxadapter3.py` requires `python3` with `asyncio` + `importlib`
 * additonally `re` for `apc_ups`, `pymodbus` for `modbus_device`, `asyncio_mqtt` for `mqtt`, `aiohttp` for `weather_station`
 * install these dependencies using `pip install`
 * please `cp config_sample.json config.json` and set the respective properties, should be self-explanatory
