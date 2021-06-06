@@ -27,7 +27,7 @@ import asyncio
 from importlib import import_module
 from helper import setLogLevel, knxalog as log
 
-PLUGINS = ("apc_ups", "daikin_ac", "modbus_device", "mqtt", "pioneer_avr", "weather_station")
+PLUGINS = ("apc_ups", "daikin_ac", "doorbird", "modbus_device", "mqtt", "pioneer_avr", "weather_station")
 
 class KnxAdapter():
     def __init__(self, argv):
