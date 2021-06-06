@@ -24,14 +24,28 @@ def plugin_def():
     return RFID
 
 class Rdm6300Reader(rdm6300.BaseReader):
+    def __init__(self, cfg):
+        super(Rdm6300Reader, self).__init__(cfg["serialDevice"])
+        self.fobs = cfg["fobs"]
+
     def card_inserted(self, card):
-        print(f"card inserted {card}")
+        key = str(card.value)
+        if key in self.fobs:
+            val = self.fobs[key]
+            name = val[0]
+            allowed = val[1]
+            if allowed:
+                log.info(f"{name}'s FOB validated ({card})")
+            else:
+                log.warning(f"{name}'s FOB forbidden attempt! ({card})")
+        else:
+            log.warning(f"Unknown FOB {card} attempted!")
 
     def card_removed(self, card):
-        print(f"card removed {card}")
+        log.debug(f"FOB {card} removed!")
 
     def invalid_card(self, card):
-        print(f"invalid card {card}")
+        log.warning(f"Invalid FOB {card} attempted!")
 
 class RFID(BasePlugin):
     def __init__(self, daemon, cfg):
@@ -39,7 +53,6 @@ class RFID(BasePlugin):
         self.reader = None
 
     def _run(self):
-        self.reader = Rdm6300Reader(self.cfg["serialDevice"])
+        self.reader = Rdm6300Reader(self.cfg)
         rfid_task = self.d.loop.run_in_executor(None, self.reader.start)
         return [rfid_task]
-      
