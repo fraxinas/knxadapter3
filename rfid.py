@@ -18,41 +18,79 @@
   USA.
 '''
 import rdm6300
+import asyncio
 from helper import BasePlugin, knxalog as log
 
 def plugin_def():
     return RFID
 
 class Rdm6300Reader(rdm6300.BaseReader):
-    def __init__(self, cfg):
+    def __init__(self, cfg, daemon):
         super(Rdm6300Reader, self).__init__(cfg["serialDevice"])
+        self.d = daemon
         self.fobs = cfg["fobs"]
+        self.forbidden_fobs = cfg["forbidden_fobs"]
+        self.objs_by_fob = {}
+        for o in cfg["objects"]:
+            for key in o["allowed_fobs"]:
+                if o["enabled"]:
+                    if key not in self.objs_by_fob:
+                        self.objs_by_fob[key] = []
+                    d = {"knx_group": o["knx_group"], "delay": o["delay"]}
+                    self.objs_by_fob[key].append(d)
+        log.debug(f"objs_by_fob: {self.objs_by_fob!r}")
 
     def card_inserted(self, card):
+        asyncio.run_coroutine_threadsafe(self._card_inserted(card), self.d.loop).result()
+
+    def card_removed(self, card):
+        asyncio.run_coroutine_threadsafe(self._card_removed(card), self.d.loop).result()
+
+    def invalid_card(self, card):
+        asyncio.run_coroutine_threadsafe(self._invalid_card(card), self.d.loop).result()
+
+    async def _card_inserted(self, card):
         key = str(card.value)
+        if key in self.forbidden_fobs:
+            name = self.fobs[key]
+            log.warning(f"{name}'s FOB forbidden attempt! ({card})")
+
         if key in self.fobs:
-            val = self.fobs[key]
-            name = val[0]
-            allowed = val[1]
-            if allowed:
-                log.info(f"{name}'s FOB validated ({card})")
+            name = self.fobs[key]
+            log.info(f"{name}'s FOB validated ({card})")
+            if key in self.objs_by_fob:
+                for obj in self.objs_by_fob[key]:
+                    knx_group = obj["knx_group"]
+                    sequence = f'<object id="{knx_group}" value="on"/>'
+                    log.info(f"opening {knx_group}")
+                    await self.d.send_knx(sequence)
             else:
                 log.warning(f"{name}'s FOB forbidden attempt! ({card})")
         else:
             log.warning(f"Unknown FOB {card} attempted!")
 
-    def card_removed(self, card):
+    async def _card_removed(self, card):
         log.debug(f"FOB {card} removed!")
+        key = str(card.value)
+        if key in self.objs_by_fob:
+            for obj in self.objs_by_fob[key]:
+                knx_group = obj["knx_group"]
+                delay = obj["delay"]
+                await asyncio.sleep(delay)
+                sequence = f'<object id="{knx_group}" value="off"/>'
+                log.debug(f"stopping {knx_group}")
+                await self.d.send_knx(sequence)
 
-    def invalid_card(self, card):
+    async def _invalid_card(self, card):
         log.warning(f"Invalid FOB {card} attempted!")
 
 class RFID(BasePlugin):
     def __init__(self, daemon, cfg):
         super(RFID, self).__init__(daemon, cfg)
+        log.debug(f"{self.device_name}")
         self.reader = None
 
     def _run(self):
-        self.reader = Rdm6300Reader(self.cfg)
+        self.reader = Rdm6300Reader(self.cfg, self.d)
         rfid_task = self.d.loop.run_in_executor(None, self.reader.start)
         return [rfid_task]
