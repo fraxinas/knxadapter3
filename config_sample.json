@@ -726,6 +726,21 @@
                 "enabled":true
             }
         ]
+    },{
+        "class":"rfid",
+        "name":"RFID",
+        "enabled":true,
+        "serialDevice":"/dev/ttyAMA0",
+        "fobs":{"12345678": "Bob", "12345679": "Alice"},
+        "forbidden_fobs":{},
+        "objects":[
+            {
+                "knx_group":"other:door:door_opener",
+                "allowed_fobs":["12345678","12345679"],
+                "delay":0.5,
+                "enabled":true
+            }
+        ]
     }
   ]
 }
