@@ -38,9 +38,12 @@ an APC Universal Power Supply to the KNX Bus
 ### daikin_ac
 * wrapper for `daikinapi` Air Conditionings
 
+### rfid
+* plugin for reading 125 kHz RFID FOBs or cards using an RDM6300 module
+
 ## prerequisites
 * `knxadapter3.py` requires `python3` with `asyncio` + `importlib`
-* additonally `re` for `apc_ups`, `pymodbus` for `modbus_device`, `asyncio_mqtt` for `mqtt`, `aiohttp` for `weather_station`
+* additonally `re` for `apc_ups`, `pymodbus` for `modbus_device`, `asyncio_mqtt` for `mqtt`, `aiohttp` for `weather_station`, `rdm6300` for `rfid`
 * install these dependencies using `pip install`
 * please `cp config_sample.json config.json` and set the respective properties, should be self-explanatory
 
