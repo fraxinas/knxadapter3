@@ -53,3 +53,5 @@ class BasePlugin:
             knxalog.info("quit client for {}...".format(self.device_name))
             self.client.close()
 
+    def get_obj_by_knxgrp(self, knx_group):
+        return next(item for item in self.obj_list if item["knx_group"] == knx_group)

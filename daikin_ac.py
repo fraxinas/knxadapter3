@@ -62,15 +62,12 @@ class DaikinAC(BasePlugin):
 
             if sequence:
                 await self.d.send_knx(sequence)
-            
+
             if log_msg:
                 log.debug(self.device_name+" skipped objects: "+', '.join(log_msg))
                 log_msg = []
 
             await asyncio.sleep(self.poll_interval)
-
-    def _get_devobj_by_knxgrp(self, knx_group):
-        return next(item for item in self.obj_list if item["knx_group"] == knx_group)["ac_object"]
 
     def _get_value_by_acobj(self, ac_object):
         return next(item for item in self.obj_list if item["ac_object"] == ac_object)["value"]
@@ -82,7 +79,7 @@ class DaikinAC(BasePlugin):
             debug_msg = "{} knx group {} raw={}".format(self.device_name, knx_grp, raw)
 
             try:
-                ac_obj = self._get_devobj_by_knxgrp(knx_grp)
+                ac_obj = self.get_obj_by_knxgrp(knx_grp)["ac_object"]
             except StopIteration:
                 log.debug("{} no AC object for given KNX group, ignored".format(debug_msg))
                 return
