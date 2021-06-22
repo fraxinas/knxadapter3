@@ -1,6 +1,6 @@
 '''
   pioneer_avr.py is part of knxadapter3.py
-  Copyright (C) 2020 Andreas Frisch <fraxinas@schaffenburg.org>
+  Copyright (C) 2020 Andreas Frisch <fraxinas@purplegecko.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,13 +41,13 @@ class PioneerAVR(BasePlugin):
         log.debug("sending to avr: '%s'" % data)
         self.avr_writer.write((data+'\r').encode(encoding='ascii'))
         self.avr_writer.drain()
-    
+
     def get_value_by_avr(self, avr_object):
         return next(item for item in self.obj_list if item["avr_object"] == avr_object)["value"]
-    
+
     def get_knx_by_avr(self, avr_object):
         return next(item for item in self.obj_list if item["avr_object"] == avr_object)["knx_group"]
-    
+
     def set_value_for_avr(self, avr_object, value):
         next(item for item in self.obj_list if item["avr_object"] == avr_object)["value"] = value
 

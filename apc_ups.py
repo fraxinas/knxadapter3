@@ -1,6 +1,6 @@
 '''
   apc_ups.py is part of knxadapter3.py
-  Copyright (C) 2020 Andreas Frisch <fraxinas@schaffenburg.org>
+  Copyright (C) 2020 Andreas Frisch <fraxinas@purplegecko.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ class ApcUps(BasePlugin):
 
             if not data:
                 break
-            
+
             data = data.decode('ascii')
             m = re.match(self.expression, data, re.DOTALL)
 
@@ -78,7 +78,7 @@ class ApcUps(BasePlugin):
                             debug_msg.append("{} unchanged, ignored!".format(debug_line))
                             continue
                         sequence += '<object id="%s" value="%.2f"/>' % (group, value)
-                    
+
                     except ValueError:
                         if val == "ONLINE":
                             value = "true"

@@ -1,6 +1,6 @@
 '''
   weather_station.py is part of knxadapter3.py
-  Copyright (C) 2020 Andreas Frisch <fraxinas@schaffenburg.org>
+  Copyright (C) 2020 Andreas Frisch <fraxinas@purplegecko.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
