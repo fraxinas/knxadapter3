@@ -30,7 +30,6 @@ class RS485(BasePlugin):
     def __init__(self, daemon, cfg):
         super(RS485, self).__init__(daemon, cfg)
         daemon.knx_read_cbs.append(self.process_knx)
-        self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
         log.debug("{} obj_list: {!r}".format(self.device_name, self.obj_list))
 
     async def rs485_connection(self, loop):
