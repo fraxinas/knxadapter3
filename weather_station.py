@@ -39,7 +39,7 @@ class WeatherStation(BasePlugin):
         self.ws_server = None
 
     async def process_values(self, query):
-        sequence = ""
+        group_value_dict = {}
         for obj in self.obj_list:
             sensor = obj["sensor"]
             group = obj["knx_group"]
@@ -66,7 +66,7 @@ class WeatherStation(BasePlugin):
                     elif prev_val == value:
                         log.debug("{!r} unchanged, ignored!".format(debug_msg))
                         continue
-                    sequence += '<object id="%s" value="%.2f"/>' % (group, value)
+                    group_value_dict[group] = "%.2f" % value
 
                 except ValueError:
                     value = query[sensor]
@@ -74,13 +74,13 @@ class WeatherStation(BasePlugin):
                     if group in self.previous_values and value == self.previous_values[group]:
                         log.debug("{!r} unchanged, ignored!".format(debug_msg))
                         continue
-                    sequence += '<object id="%s" value="%s"/>' % (group, value)
+                    group_value_dict[group] = value
 
                 obj["value"] = value
                 log.debug(debug_msg)
 
-        if sequence:
-            await self.d.send_knx(sequence)
+        if group_value_dict:
+            await self.d.set_group_value_dict(group_value_dict)
 
     async def handle(self, request):
         log.debug("handle: {!r}".format(request.rel_url.query))

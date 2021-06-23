@@ -53,6 +53,7 @@ class KnxAdapter():
 
         self.loop = asyncio.get_event_loop()
         self.knx_read_cbs = []
+        self.value_direct_cbs = []
 
     async def linknx_client(self, loop, knxcfg):
         self.knx_client_reader, self.knx_client_writer = await asyncio.open_connection(
@@ -69,6 +70,15 @@ class KnxAdapter():
             await callback(cmd)
 
         writer.close()
+
+    async def set_group_value_dict(self, group_value_dict):
+        sequence = ""
+        for group, value in group_value_dict.items():
+            sequence += f'<object id="{group}" value="{value}"/>'
+            for callback in self.value_direct_cbs:
+                await callback((group, value))
+        if sequence:
+            await self.send_knx(sequence)
 
     async def send_knx(self, sequence):
         async with self._knx_lock:

@@ -67,15 +67,15 @@ class MQTT(BasePlugin):
             await asyncio.gather(*self._mqtt_tasks)
 
     async def mqtt_handle(self, messages, obj):
-        sequence = ""
+        group_value_dict = {}
         async for message in messages:
             knx_group = self._get_knxgrp_by_topic(message.topic)
             value = str(message.payload.decode())
             if knx_group:
-                sequence = '<object id="%s" value="%s"/>' % (knx_group, value)
+                group_value_dict[knx_group] = value
             log.debug("%s: %s (knx_group=%s)" % (message.topic, value, knx_group))
-            if sequence:
-                await self.d.send_knx(sequence)
+            if group_value_dict:
+                await self.d.set_group_value_dict(group_value_dict)
             obj["value"] = value
 
     async def cancel_tasks(self):

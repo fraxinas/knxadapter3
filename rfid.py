@@ -61,9 +61,8 @@ class Rdm6300Reader(rdm6300.BaseReader):
             if key in self.objs_by_fob:
                 for obj in self.objs_by_fob[key]:
                     knx_group = obj["knx_group"]
-                    sequence = f'<object id="{knx_group}" value="on"/>'
                     log.info(f"opening {knx_group}")
-                    await self.d.send_knx(sequence)
+                    await self.d.set_group_value_dict({knx_group: "on"})
             else:
                 log.warning(f"{name}'s FOB forbidden attempt! ({card})")
         else:
@@ -77,9 +76,8 @@ class Rdm6300Reader(rdm6300.BaseReader):
                 knx_group = obj["knx_group"]
                 delay = obj["delay"]
                 await asyncio.sleep(delay)
-                sequence = f'<object id="{knx_group}" value="off"/>'
                 log.debug(f"stopping {knx_group}")
-                await self.d.send_knx(sequence)
+                await self.d.set_group_value_dict({knx_group: "off"})
 
     async def _invalid_card(self, card):
         log.warning(f"Invalid FOB {card} attempted!")

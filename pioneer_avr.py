@@ -78,7 +78,7 @@ class PioneerAVR(BasePlugin):
 
     async def handle_avr(self):
         while True:
-            sequence = None
+            group_value_dict = {}
             data = await self.avr_reader.readline()
 
             if not data:
@@ -91,7 +91,7 @@ class PioneerAVR(BasePlugin):
               if line == "FL022020202020202020202020202020\r\n":
                 self.accu_word = self.accu_word and self.accu_word.rstrip() or ""
                 self.set_value_for_avr("display_text", self.accu_word)
-                sequence = '<object id="%s" value="%s"/>' % (self.get_knx_by_avr("display_text"), self.get_value_by_avr("display_text"))
+                group_value_dict[self.get_knx_by_avr("display_text")] = self.get_value_by_avr("display_text")
                 log.debug("display_text complete! '%s'" % self.get_value_by_avr("display_text"))
               else:
                 new_word = bytes.fromhex(line[4:-2]).decode('iso8859_15')
@@ -102,43 +102,43 @@ class PioneerAVR(BasePlugin):
                     if not self.get_value_by_avr("display_text") or new_word not in self.get_value_by_avr("display_text"):
                         self.set_value_for_avr("display_text", None)
                         self.accu_word = new_word
-                        sequence = '<object id="%s" value="%s"/>' % (self.get_knx_by_avr("display_text"), self.accu_word)
-                        log.debug("CHANGE new_word={!r} accu_word={!r} {}".format(new_word, self.accu_word, sequence))
+                        group_value_dict[self.get_knx_by_avr("display_text")] = self.accu_word
+                        log.debug("CHANGE new_word={!r} accu_word={!r}".format(new_word, self.accu_word))
                     else:
                         log.debug("STARTOVER new_word={!r} accu_word={!r}".format(new_word, self.accu_word))
                 else:
                   self.accu_word += new_word[-1:]
                   log.debug("+++++ new_word={!r} accu_word={!r}".format(new_word, self.accu_word))
                 if not self.get_value_by_avr("display_text") and self.accu_word[-1] != ' ':
-                  sequence = '<object id="%s" value="%s"/>' % (self.get_knx_by_avr("display_text"), self.accu_word.rstrip())
-                  log.debug("COMMIT new_word={!r} accu_word={!r} {}".format(new_word, self.accu_word, sequence))
+                  group_value_dict[self.get_knx_by_avr("display_text")] = self.accu_word.rstrip()
+                  log.debug("COMMIT new_word={!r} accu_word={!r}".format(new_word, self.accu_word))
 
             elif line.startswith('VOL'):
               avr_volume = int(line[3:])
               new_volume = round(avr_volume * (255.0 / 185.0))
               if new_volume != self.get_value_by_avr("volume"):
                 self.set_value_for_avr("volume", new_volume)
-                sequence = '<object id="%s" value="%d"/>' % (self.get_knx_by_avr("volume"), self.get_value_by_avr("volume"))
+                group_value_dict[self.get_knx_by_avr("volume")] = self.get_value_by_avr("volume")
 
             elif line.startswith('PWR'):
               if line[3] == '0':
                 self.set_value_for_avr("power", "on")
               else:
                 self.set_value_for_avr("power", "off")
-              sequence = '<object id="%s" value="%s"/>' % (self.get_knx_by_avr("power"), self.get_value_by_avr("power"))
+              group_value_dict[self.get_knx_by_avr("power")] = self.get_value_by_avr("power")
               self.set_value_for_avr("display_text", None)
-              sequence += '<object id="%s" value="%s"/>' % (self.get_knx_by_avr("display_text"), self.get_value_by_avr("display_text"))
+              group_value_dict[self.get_knx_by_avr("display_text")] = self.get_value_by_avr("display_text")
 
             elif line.startswith('FN'):
               new_fn = int(line[2:4])
               if new_fn != self.get_value_by_avr("fn"):
                 self.set_value_for_avr("fn", new_fn)
-                sequence = '<object id="%s" value="%d"/>' % (self.get_knx_by_avr("fn"), self.get_value_by_avr("fn"))
+                group_value_dict[self.get_knx_by_avr("fn")] = self.get_value_by_avr("fn")
                 self.set_value_for_avr("display_text", None)
-                sequence += '<object id="%s" value="%s"/>' % (self.get_knx_by_avr("display_text"), self.get_value_by_avr("display_text"))
+                group_value_dict[self.get_knx_by_avr("display_text")] = self.get_value_by_avr("display_text")
 
-            if sequence:
-              await self.d.send_knx(sequence)
+            if group_value_dict:
+                await self.d.set_group_value_dict(group_value_dict)
 
     def _run(self):
         self.client = self.d.loop.run_until_complete(self.avr_client(self.d.loop))

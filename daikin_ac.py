@@ -40,7 +40,7 @@ class DaikinAC(BasePlugin):
         log_msg = []
         while True:
             self._client.receive_info()
-            sequence = ""
+            group_value_dict = {}
 
             for o in self.obj_list:
                 ac_obj = o["ac_object"]
@@ -57,11 +57,11 @@ class DaikinAC(BasePlugin):
                     log_msg.append("{!r}: {!r}".format(ac_obj, value))
                     continue
 
-                sequence += '<object id="%s" value="%s"/>' % (o["knx_group"], str(value))
+                group_value_dict[o["knx_group"]] = str(value)
                 o["value"] = value
 
-            if sequence:
-                await self.d.send_knx(sequence)
+            if group_value_dict:
+                await self.d.set_group_value_dict(group_value_dict)
 
             if log_msg:
                 log.debug(self.device_name+" skipped objects: "+', '.join(log_msg))

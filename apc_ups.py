@@ -61,7 +61,7 @@ class ApcUps(BasePlugin):
             m = re.match(self.expression, data, re.DOTALL)
 
             if m:
-                sequence = ""
+                group_value_dict = {}
                 for idx, o in enumerate(self.obj_list):
                     group = o["knx_group"]
                     val = m.groups(0)[idx]
@@ -77,7 +77,7 @@ class ApcUps(BasePlugin):
                         elif prev_val == value:
                             debug_msg.append("{} unchanged, ignored!".format(debug_line))
                             continue
-                        sequence += '<object id="%s" value="%.2f"/>' % (group, value)
+                        group_value_dict[group] = "%.2f" % value
 
                     except ValueError:
                         if val == "ONLINE":
@@ -88,15 +88,15 @@ class ApcUps(BasePlugin):
                         if prev_val == value:
                             debug_msg.append("{} unchanged, ignored!".format(debug_line))
                             continue
-                        sequence += '<object id="%s" value="%s"/>' % (group, value)
+                        group_value_dict[group] = value
 
                     o["value"] = value
                     debug_msg.append(debug_line)
 
                 log.debug("{} {!r}\t".format(self.device_name, data)+"\n\t".join(debug_msg))
 
-                if sequence:
-                    await self.d.send_knx(sequence)
+                if group_value_dict:
+                    await self.d.set_group_value_dict(group_value_dict)
 
             else:
                 log.warning("{} Couldn't parse {!r}".format(self.device_name, data))

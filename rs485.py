@@ -52,8 +52,7 @@ class RS485(BasePlugin):
                         knxval = o["valmap"][val]
                     else:
                         knxval = val
-                    sequence = '<object id="%s" value="%s"/>' % (o["knx_group"], knxval)
-                    await self.d.send_knx(sequence)
+                    await self.d.set_group_value_dict({o["knx_group"]: knxval})
                 else:
                     log.warning("{} command key {} not configured!".format(self.device_name, key))
 

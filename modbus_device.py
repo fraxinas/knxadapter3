@@ -95,7 +95,7 @@ class ModbusDevice(BasePlugin):
             self.wordorder = Endian.Big
         self.modbus_bin_pay_dec = BinaryPayloadDecoder
         while True:
-            sequence = ""
+            group_value_dict = {}
 
             for o in self.obj_list:
                 register = o["register"]
@@ -121,12 +121,12 @@ class ModbusDevice(BasePlugin):
 
                 prec = o["precision"]
                 str_value = "%.{}f".format(prec) % round(value, prec)
-                sequence += '<object id="%s" value="%s"/>' % (o["knx_group"], str_value)
+                group_value_dict[o["knx_group"]] = str_value
 
                 o["value"] = value
 
-            if sequence:
-                await self.d.send_knx(sequence)
+            if group_value_dict:
+                await self.d.set_group_value_dict(group_value_dict)
 
             await asyncio.sleep(self.poll_interval)
 
