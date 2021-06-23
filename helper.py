@@ -50,11 +50,11 @@ class BasePlugin:
             self.device_name = cfg["name"]
             self.client = None
             self.obj_list = []
-            default_hysteresis = "default_hysteresis" in self.cfg and self.cfg["default_hysteresis"] or 0
+            default_hysteresis = "default_hysteresis" in self.cfg and self.cfg["default_hysteresis"] or None
             for obj in cfg["objects"]:
                 if obj["enabled"]:
                     obj.update({"value": 0})
-                    if not "hysteresis" in obj:
+                    if not "hysteresis" in obj and default_hysteresis:
                         obj.update({"hysteresis": default_hysteresis})
                     self.obj_list.append(obj)
 
