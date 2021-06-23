@@ -97,12 +97,12 @@ class MQTT(BasePlugin):
                 topic = self._get_topic_by_knxgrp(knx_group)
             except StopIteration:
                 log.debug("{} no publish_topic for given KNX group, ignored".format(debug_msg))
-                return
+                return True
 
             prev_val = self._get_value_by_knxgrp(knx_group)
             if str(value) == str(prev_val):
                 log.debug("{} topic {} unchanged value {}->{}, ignored!".format(debug_msg, topic, str(self._get_value_by_knxgrp(knx_group)), str(value)))
-                return
+                return True
 
             log.debug("{} topic {} updated value {}=>{}".format(debug_msg, topic, prev_val, value))
 
@@ -110,9 +110,10 @@ class MQTT(BasePlugin):
             self._mqtt_tasks.add(task)
 
             await asyncio.gather(*self._mqtt_tasks)
+            return True
 
         except:
-            log.error("Couldn't parse linknx command: {!r}".format(cmd))
+            return False
 
     async def _publish_to_topic(self, topic, value):
         if self._mqtt_client:

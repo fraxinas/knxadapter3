@@ -80,9 +80,9 @@ class RS485(BasePlugin):
                 if "send" in o["enabled"]:
                     await self.write_rs485(o, raw)
             except StopIteration:
-                return
+                return True
         except:
-            log.error("Couldn't parse linknx command: {!r}".format(cmd))
+            return False
 
     async def write_rs485(self, o, value):
         rs485key = o["rs485key"]

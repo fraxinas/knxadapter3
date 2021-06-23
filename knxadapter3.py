@@ -66,9 +66,12 @@ class KnxAdapter():
         addr = writer.get_extra_info('peername')
         log.debug("Received %r from %r" % (cmd, addr))
 
+        parse_error = False
         for callback in self.knx_read_cbs:
-            await callback(cmd)
-
+            if not await callback(cmd):
+                parse_error = True
+        if parse_error:
+            log.error("Couldn't parse linknx command: {cmd!r}")
         writer.close()
 
     async def set_group_value_dict(self, group_value_dict):

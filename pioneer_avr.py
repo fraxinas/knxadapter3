@@ -73,8 +73,9 @@ class PioneerAVR(BasePlugin):
                     self.set_value_for_avr("fn", new_fn)
             if msg:
                 await self.send_avr(msg)
+            return True
         except:
-            log.error("Couldn't parse linknx command: {!r}".format(cmd))
+            return False
 
     async def handle_avr(self):
         while True:

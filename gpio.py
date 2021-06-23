@@ -81,9 +81,10 @@ class gpio(BasePlugin):
                 o = self.get_obj_by_knxgrp(knx_grp)
                 await self.set_gpio(o, raw)
             except StopIteration:
-                return
+                log.debug(f"{self.device_name} no gpio output found.")
+            return True
         except:
-            log.error("Couldn't parse linknx command: {!r}".format(cmd))
+            return False
 
     async def set_gpio(self, o, value):
         log.debug(f"{self.device_name} set_gpio({o!r}, {value})")

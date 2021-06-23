@@ -82,7 +82,7 @@ class DaikinAC(BasePlugin):
                 ac_obj = self.get_obj_by_knxgrp(knx_grp)["ac_object"]
             except StopIteration:
                 log.debug("{} no AC object for given KNX group, ignored".format(debug_msg))
-                return
+                return True
 
             if ac_obj == "fan_rate":
                 if raw == "0":
@@ -98,13 +98,14 @@ class DaikinAC(BasePlugin):
 
             if str(value) == str(self._get_value_by_acobj(ac_obj)):
                 log.debug("{} ac_obj {} unchanged value {}->{}, ignored!".format(debug_msg, ac_obj, str(self._get_value_by_acobj(ac_obj)), str(value)))
-                return
+                return True
 
             log.debug("{} ac_obj {} updated value {}=>{}".format(debug_msg, ac_obj, self._get_value_by_acobj(ac_obj), value))
             setattr(self._client, ac_obj, value)
+            return True
 
         except:
-            log.error("Couldn't parse linknx command: {!r}".format(cmd))
+            return False
 
     def _run(self):
         class DaikinCtrl(Daikin):
