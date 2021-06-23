@@ -48,8 +48,7 @@ class gpio(BasePlugin):
                     if action in self.GPIO_ACTION_MAP:
                         actioncbname = self.GPIO_ACTION_MAP[action]
                         if hasattr(gpio_obj, actioncbname):
-                            value = o["actions"][action]
-                            actioncb = lambda evt: self.gpio_action(evt, o["knx_group"], value)
+                            actioncb = (lambda value: lambda evt: self.gpio_action(evt, o["knx_group"], value))(value)
                             setattr(gpio_obj, actioncbname, actioncb)
                             log.debug(f"{self.device_name} init on '{actioncbname}' actioncb='{actioncb!r}' set value to '{value}' for {o!r}")
                         else:
