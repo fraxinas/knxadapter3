@@ -37,8 +37,6 @@ class gpio(BasePlugin):
         super(gpio, self).__init__(daemon, cfg)
         daemon.knx_read_cbs.append(self.process_knx)
         daemon.value_direct_cbs.append(self.process_direct)
-        log.debug("{} obj_list: {!r}".format(self.device_name, self.obj_list))
-
         for o in cfg["objects"]:
             gpio_type = o["gpio_type"]
             gpio_pin = o["gpio_pin"]
@@ -56,6 +54,7 @@ class gpio(BasePlugin):
                             log.debug(f"{self.device_name} init on '{actioncbname}' actioncb='{actioncb!r}' set value to '{value}' for {o!r}")
                         else:
                             log.warning(f"{self.device_name} init illegal action '{actioncbname}' for {gpio_obj!r}")
+        log.debug("{} obj_list: {!r}".format(self.device_name, self.obj_list))
 
     def gpio_action(self, evt, group, value):
         log.debug(f"{self.device_name} gpio_action(evt={evt!r}, group={group}, value={value})")
@@ -73,12 +72,16 @@ class gpio(BasePlugin):
         except StopIteration:
             return
 
+    def _get_output_obj_by_knxgrp(self, knx_group):
+        return next(item for item in self.obj_list if item["knx_group"] == knx_group and item["gpio_direction"] == self.GPIO_DIRECTION_OUTPUT)
+
     async def process_knx(self, cmd):
         try:
             knx_grp, raw = cmd.split("=")
-            log.debug(f"{self.device_name} process_knx(group={knx_grp} raw={raw})")
+            raw = raw.strip()
+            log.debug(f"{self.device_name} process_knx(group={knx_grp}, raw={raw})")
             try:
-                o = self.get_obj_by_knxgrp(knx_grp)
+                o = self._get_output_obj_by_knxgrp(knx_grp)
                 await self.set_gpio(o, raw)
             except StopIteration:
                 log.debug(f"{self.device_name} no gpio output found.")
@@ -88,8 +91,6 @@ class gpio(BasePlugin):
 
     async def set_gpio(self, o, value):
         log.debug(f"{self.device_name} set_gpio({o!r}, {value})")
-        if o["gpio_direction"] != self.GPIO_DIRECTION_OUTPUT:
-            return
         try:
             gpio_obj = o["gpio_object"]
             actioncall = getattr(gpio_obj, value)
