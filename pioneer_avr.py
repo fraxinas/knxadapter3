@@ -65,12 +65,12 @@ class PioneerAVR(BasePlugin):
                 if new_vol != self.get_value_by_avr("volume"):
                     avr_vol = round(new_vol * (185.0 / 255.0))
                     msg = "%03dVL" % avr_vol
-                    set_value_for_avr("volume", new_vol)
+                    self.set_value_for_avr("volume", new_vol)
             elif cmd[0] == 'F':
                 new_fn = int(cmd[1:3])
                 if new_fn in range (0,32) and new_fn != self.get_value_by_avr("fn"):
                     msg = "%02dFN" % new_fn
-                    set_value_for_avr("fn", new_fn)
+                    self.set_value_for_avr("fn", new_fn)
             if msg:
                 await self.send_avr(msg)
         except:
