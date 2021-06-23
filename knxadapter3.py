@@ -76,7 +76,7 @@ class KnxAdapter():
         for group, value in group_value_dict.items():
             sequence += f'<object id="{group}" value="{value}"/>'
             for callback in self.value_direct_cbs:
-                await callback((group, value))
+                await callback(group, value)
         if sequence:
             await self.send_knx(sequence)
 
