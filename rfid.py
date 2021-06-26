@@ -30,6 +30,7 @@ class Rdm6300Reader(rdm6300.BaseReader):
         self.d = daemon
         self.fobs = cfg["fobs"]
         self.forbidden_fobs = cfg["forbidden_fobs"]
+        self.throttle_delay = "throttle_delay" in cfg and cfg("throttle_delay") or 5
         self.objs_by_fob = {}
         for o in cfg["objects"]:
             for key in o["allowed_fobs"]:
@@ -66,7 +67,8 @@ class Rdm6300Reader(rdm6300.BaseReader):
             else:
                 log.warning(f"{name}'s FOB forbidden attempt! ({card})")
         else:
-            log.warning(f"Unknown FOB {card} attempted!")
+            log.warning(f"Unknown FOB {card} attempted! delaying for {self.throttle_delay} s!")
+            await asyncio.sleep(self.throttle_delay)
 
     async def _card_removed(self, card):
         log.debug(f"FOB {card} removed!")
