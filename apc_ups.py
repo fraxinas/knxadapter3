@@ -21,6 +21,7 @@
 import asyncio
 import re
 from helper import BasePlugin, knxalog as log
+from socket import gaierror
 
 def plugin_def():
     return ApcUps
@@ -38,8 +39,12 @@ class ApcUps(BasePlugin):
         self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
 
     async def ups_client(self, loop):
-        self.ups_reader, self.ups_writer = await asyncio.open_connection(
-            self.cfg["host"], self.cfg["port"], loop=loop)
+        try:
+            host, port = self.cfg["host"], self.cfg["port"]
+            self.ups_reader, self.ups_writer = await asyncio.open_connection(
+                host, port, loop=loop)
+        except gaierror as e:
+            log.error(f"{self.device_name} can't connect to {host}:{port}. {e!r}")
 
     async def poll_ups(self):
         while True:
@@ -103,5 +108,8 @@ class ApcUps(BasePlugin):
 
     def _run(self):
         self.client = self.d.loop.run_until_complete(self.ups_client(self.d.loop))
-        poll_task = self.d.loop.create_task(self.poll_ups())
-        return [self.handle_ups(), poll_task]
+        if self.ups_reader and self.ups_writer:
+            poll_task = self.d.loop.create_task(self.poll_ups())
+            return [self.handle_ups(), poll_task]
+        else:
+            return False
