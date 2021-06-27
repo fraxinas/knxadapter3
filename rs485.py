@@ -22,6 +22,7 @@ import asyncio
 import logging
 from helper import BasePlugin, knxalog as log
 import serial_asyncio
+from serial.serialutil import SerialException
 
 def plugin_def():
     return RS485
@@ -32,10 +33,16 @@ class RS485(BasePlugin):
         daemon.knx_read_cbs.append(self.process_knx)
         daemon.value_direct_cbs.append(self.process_direct)
         log.debug("{} obj_list: {!r}".format(self.device_name, self.obj_list))
+        self._reader = None
+        self._writer = None
 
     async def rs485_connection(self, loop):
         baudrate = "baudRate" in self.cfg and self.cfg["baudRate"] or 115200
-        self._reader, self._writer = await serial_asyncio.open_serial_connection(loop=loop, url=self.cfg["serialDevice"], baudrate=baudrate)
+        dev = self.cfg["serialDevice"]
+        try:
+            self._reader, self._writer = await serial_asyncio.open_serial_connection(loop=loop, url=dev, baudrate=baudrate)
+        except SerialException as e:
+            log.error(f"{self.device_name} Can't open {dev}. {e!r}")
 
     async def handle_rs485(self):
         log_msg = []
@@ -97,4 +104,7 @@ class RS485(BasePlugin):
 
     def _run(self):
         self._client = self.d.loop.run_until_complete(self.rs485_connection(self.d.loop))
-        return [self.handle_rs485()]
+        if self._reader and self._writer:
+            return [self.handle_rs485()]
+        else:
+            return False
