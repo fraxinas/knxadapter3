@@ -22,6 +22,7 @@ import asyncio
 import logging
 from helper import BasePlugin, knxalog as log
 from daikinapi import Daikin
+from requests import ConnectionError
 
 def plugin_def():
     return DaikinAC
@@ -45,13 +46,15 @@ class DaikinAC(BasePlugin):
             for o in self.obj_list:
                 ac_obj = o["ac_object"]
 
-                if hasattr(self._client, ac_obj):
+                try:
                     value = getattr(self._client, ac_obj)
 
                     if value == "A":
                         value = 0
                     elif value == "B":
                         value = 1
+                except KeyError:
+                    continue
 
                 if value == o["value"]:
                     log_msg.append("{!r}: {!r}".format(ac_obj, value))
@@ -119,10 +122,13 @@ class DaikinAC(BasePlugin):
                 self._cached_sens_fields = {}
 
             def receive_info(self):
-                self._cached_ctrl_fields = self._get("/aircon/get_control_info")
-                log.debug("Daikin AC Control Fields {!r}".format(self._cached_ctrl_fields))
-                self._cached_sens_fields = self._get("/aircon/get_sensor_info")
-                log.debug("Daikin AC Sensor Fields {!r}".format(self._cached_sens_fields))
+                try:
+                    self._cached_ctrl_fields = self._get("/aircon/get_control_info")
+                    log.debug("Daikin AC Control Fields {!r}".format(self._cached_ctrl_fields))
+                    self._cached_sens_fields = self._get("/aircon/get_sensor_info")
+                    log.debug("Daikin AC Sensor Fields {!r}".format(self._cached_sens_fields))
+                except ConnectionError as e:
+                    log.warning("Daikin AC Couldn't perform API read {!r}".format(e))
 
             def _get_control(self, all_fields=False):
                 """ Replacement for daikinapi function to operate on cached control info """
