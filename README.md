@@ -10,7 +10,7 @@ Currently it consists of the following
 
 ## Plugins
 ### weather_station
-* opens a local HTTP server to which LAN-enabled 
+* opens a local HTTP server to which LAN-enabled
 weather stations like WH2601 can push their data instead of wunderground.
 * it then extracts the values from the HTTP query, converts units where needed and relays them to LinKNX
 * In the weather logger's web interface, please configure:
@@ -42,9 +42,20 @@ an APC Universal Power Supply to the KNX Bus
 * plugin for reading 125 kHz RFID FOBs or cards using an RDM6300 module
 
 ## prerequisites
+### dependencies
 * `knxadapter3.py` requires `python3` with `asyncio` + `importlib`
-* additonally `re` for `apc_ups`, `pymodbus` for `modbus_device`, `asyncio_mqtt` for `mqtt`, `aiohttp` for `weather_station`, `rdm6300` for `rfid`
+Additonal dependencies:
+| plugin(s)       | module  |
+| :-------------- | :------ |
+| `apc_ups`       | `re`    |
+| `modbus_device` | `pymodbus`  |
+| `mqtt`          | `asyncio_mqtt` |
+| `weather_station` & `doorbird` | `aiohttp`  |
+| `rfid`          | `rdm6300` |
+| `RS485`         | `pyserial-asyncio` |
 * install these dependencies using `pip install`
+
+### configuration
 * please `cp config_sample.json config.json` and set the respective properties, should be self-explanatory
 
 ## LinKNX integration
