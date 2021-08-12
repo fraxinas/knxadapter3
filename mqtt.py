@@ -31,6 +31,7 @@ class MQTT(BasePlugin):
     def __init__(self, daemon, cfg):
         super(MQTT, self).__init__(daemon, cfg)
         daemon.knx_read_cbs.append(self.process_knx)
+        daemon.value_direct_cbs.append(self.process_direct)
         self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
         self._mqtt_tasks = None
         self._mqtt_client = None
@@ -48,8 +49,9 @@ class MQTT(BasePlugin):
         async with AsyncExitStack() as stack:
             self._mqtt_tasks = set()
             stack.push_async_callback(self.cancel_tasks, self._mqtt_tasks)
-
-            self._mqtt_client = Client(self.cfg["host"],port=self.cfg["port"])
+            username = self.cfg["user"] or None
+            password = self.cfg["pass"] or None
+            self._mqtt_client = Client(self.cfg["host"],port=self.cfg["port"],username=username,password=password)
             await stack.enter_async_context(self._mqtt_client)
 
             topics = []
@@ -69,11 +71,22 @@ class MQTT(BasePlugin):
     async def mqtt_handle(self, messages, obj):
         group_value_dict = {}
         async for message in messages:
-            knx_group = self._get_knxgrp_by_topic(message.topic)
-            value = str(message.payload.decode())
+            knx_groups = self._get_knxgroups_by_topic(message.topic)
+            payload = message.payload.decode()
+            o = self._get_obj_by_topic(message.topic)
+            value = str(payload)
+            if "valmap" in o:
+                for key, valdict in o[valmap].items():
+                    if key in payload:
+                        prop = payload[key]
+                        if type(valdict) == dict and prop in valdict:
+                            value = prop[valdict]
+                        else:
+                            value = str(prop)
+
             if knx_group:
                 group_value_dict[knx_group] = value
-            log.debug("%s: %s (knx_group=%s)" % (message.topic, value, knx_group))
+            log.debug("{} mqtt topic={} payload={} value={} (setting knx_group {})".format (self.device_name, message.topic, payload, value, knx_group))
             if group_value_dict:
                 await self.d.set_group_value_dict(group_value_dict)
             obj["value"] = value
@@ -88,51 +101,40 @@ class MQTT(BasePlugin):
             except asyncio.CancelledError:
                 pass
 
+    async def process_direct(self, knx_group, knx_val):
+        debug_msg = f"{self.device_name} process_direct({knx_group}={knx_val})"
+        await self._write_mqtt(knx_group, knx_val, debug_msg)
+
     async def process_knx(self, cmd):
-        try:
-            knx_group, value = cmd.split("=")
-            debug_msg = "{} knx {} value={}".format(self.device_name, knx_group, value)
+        knx_group, knx_val = cmd.split("=")
+        debug_msg = f"{self.device_name} process_knx({knx_group}={knx_val})"
+        await self._write_mqtt(knx_group, knx_val, debug_msg)
 
-            try:
-                topic = self._get_topic_by_knxgrp(knx_group)
-            except StopIteration:
-                log.debug("{} no publish_topic for given KNX group, ignored".format(debug_msg))
-                return True
+    async def _write_mqtt(self, knx_group, knx_val, debug_msg):
+        objects = []
+        for item in self.obj_list:
+            if item["knx_group"] == knx_group:
+                objects.append(item)
+        for o in objects:
+            if "publish_topic" in o:
+                topic = o["publish_topic"]
+                prev_val = o["value"]
+                if "valmap" in o:
+                    payload = o["valmap"][knx_val]
+                else:
+                    payload = knx_val
+                log.debug(f"{debug_msg} topic {topic} updating from value {prev_val}")
+                task = asyncio.create_task(self._publish_to_topic(o, topic, knx_val, payload))
+                self._mqtt_tasks.add(task)
+        await asyncio.gather(*self._mqtt_tasks)
 
-            prev_val = self._get_value_by_knxgrp(knx_group)
-            if str(value) == str(prev_val):
-                log.debug("{} topic {} unchanged value {}->{}, ignored!".format(debug_msg, topic, str(self._get_value_by_knxgrp(knx_group)), str(value)))
-                return True
-
-            log.debug("{} topic {} updated value {}=>{}".format(debug_msg, topic, prev_val, value))
-
-            task = asyncio.create_task(self._publish_to_topic(topic, value))
-            self._mqtt_tasks.add(task)
-
-            await asyncio.gather(*self._mqtt_tasks)
-            return True
-
-        except:
-            return False
-
-    async def _publish_to_topic(self, topic, value):
+    async def _publish_to_topic(self, topic, knx_val, payload):
         if self._mqtt_client:
-            await self._mqtt_client.publish(topic, value, qos=1)
-            self._set_value_by_publishtopic(topic, value)
+            await self._mqtt_client.publish(topic, payload=payload, qos=1, retain=True)
+            log.info(f"{self.device_name} topic {topic} updated! payload = {payload}")
+            o["value"] = knx_val
         else:
-            log.error("Couldn't publish {}={} because mqtt is disconnected".format(topic, value))
-
-    def _get_knxgrp_by_topic(self, topic):
-        return next(item for item in self.obj_list if item["topic"] == topic)["knx_group"]
-
-    def _get_topic_by_knxgrp(self, knx_group):
-        return next(item for item in self.obj_list if item["knx_group"] == knx_group)["publish_topic"]
-
-    def _get_value_by_knxgrp(self, knx_group):
-        return next(item for item in self.obj_list if item["knx_group"] == knx_group)["value"]
-
-    def _set_value_by_publishtopic(self, topic, value):
-        next(item for item in self.obj_list if item.get("publish_topic") == topic)["value"] = value
+            log.error(f"Couldn't publish {topic}={payload} because mqtt is disconnected")
 
     def _run(self):
         loop_task = self.d.loop.create_task(self.mqtt_loop())
