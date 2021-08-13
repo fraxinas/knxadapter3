@@ -23,6 +23,7 @@ import logging
 from contextlib import AsyncExitStack, asynccontextmanager
 from helper import BasePlugin, knxalog as log
 from asyncio_mqtt import Client, MqttError
+from json import loads
 
 def plugin_def():
     return MQTT
@@ -71,25 +72,37 @@ class MQTT(BasePlugin):
     async def mqtt_handle(self, messages, obj):
         group_value_dict = {}
         async for message in messages:
-            knx_groups = self._get_knxgroups_by_topic(message.topic)
             payload = message.payload.decode()
-            o = self._get_obj_by_topic(message.topic)
-            value = str(payload)
-            if "valmap" in o:
-                for key, valdict in o[valmap].items():
-                    if key in payload:
-                        prop = payload[key]
-                        if type(valdict) == dict and prop in valdict:
-                            value = prop[valdict]
+            try:
+                jsonobj = loads(payload)
+            except ValueError:
+                jsonobj = None
+                value = str(payload)
+            objects = self._get_objects_by_topic(message.topic)
+            for o in objects:
+                knx_group = o["knx_group"]
+                if jsonobj and "valmap" in o:
+                    for key, valdict in o["valmap"].items():
+                        log.debug(f"{self.device_name} #### mqtt topic={message.topic} key={key} valdict={valdict} jsonobj {jsonobj}")
+                        if key in jsonobj:
+                            prop = jsonobj[key]
+                            if type(valdict) == dict and prop in valdict:
+                                value = valdict[prop]
+                            else:
+                                value = str(prop)
+                            log.debug(f"{self.device_name} #### mqtt key in jsonobj prop={prop} VALUE={value}")
                         else:
-                            value = str(prop)
-
-            if knx_group:
-                group_value_dict[knx_group] = value
-            log.debug("{} mqtt topic={} payload={} value={} (setting knx_group {})".format (self.device_name, message.topic, payload, value, knx_group))
-            if group_value_dict:
-                await self.d.set_group_value_dict(group_value_dict)
-            obj["value"] = value
+                            log.debug(f"{self.device_name} #### mqtt key not contained, continue!!!")
+                            continue
+                prev_val = o["value"]
+                if prev_val != value:
+                    o["value"] = value
+                    group_value_dict[knx_group] = value
+                    log.debug(f"{self.device_name} mqtt topic={message.topic} payload={payload} knx_group={knx_group} updated value {prev_val}=>{value}")
+                    if group_value_dict:
+                        await self.d.set_group_value_dict(group_value_dict, False)
+                else:
+                    log.debug(f"{self.device_name} mqtt topic={message.topic} payload={payload} knx_group={knx_group} value={value} unchanged, ignored")
 
     async def cancel_tasks(self):
         for task in self._mqtt_tasks:
@@ -111,6 +124,8 @@ class MQTT(BasePlugin):
         await self._write_mqtt(knx_group, knx_val, debug_msg)
 
     async def _write_mqtt(self, knx_group, knx_val, debug_msg):
+        if not self._mqtt_client:
+            return
         objects = []
         for item in self.obj_list:
             if item["knx_group"] == knx_group:
@@ -123,18 +138,24 @@ class MQTT(BasePlugin):
                     payload = o["valmap"][knx_val]
                 else:
                     payload = knx_val
-                log.debug(f"{debug_msg} topic {topic} updating from value {prev_val}")
-                task = asyncio.create_task(self._publish_to_topic(o, topic, knx_val, payload))
-                self._mqtt_tasks.add(task)
-        await asyncio.gather(*self._mqtt_tasks)
+                log.info(f"{debug_msg} topic {topic} updating {prev_val}=>{payload}")
+                await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
+                o["value"] = knx_val
+        if "status_object" in self.cfg and self._mqtt_client:
+            so = self.cfg["status_object"]
+            delay = so.get("delay", 1.0)
+            topic = so["topic"]
+            payload = so["payload"]
+            await asyncio.sleep(delay)
+            await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
+            log.debug(f"{debug_msg} requested status topic {topic} payload=>{payload}")
 
-    async def _publish_to_topic(self, topic, knx_val, payload):
-        if self._mqtt_client:
-            await self._mqtt_client.publish(topic, payload=payload, qos=1, retain=True)
-            log.info(f"{self.device_name} topic {topic} updated! payload = {payload}")
-            o["value"] = knx_val
-        else:
-            log.error(f"Couldn't publish {topic}={payload} because mqtt is disconnected")
+    def _get_objects_by_topic(self, topic):
+        objects = []
+        for item in self.obj_list:
+            if item["topic"] == topic:
+                objects.append(item)
+        return objects
 
     def _run(self):
         loop_task = self.d.loop.create_task(self.mqtt_loop())

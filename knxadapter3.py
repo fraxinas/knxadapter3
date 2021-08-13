@@ -74,12 +74,13 @@ class KnxAdapter():
             log.error("Couldn't parse linknx command: {!r} in callback {!r}".format(cmd, parse_errors))
         writer.close()
 
-    async def set_group_value_dict(self, group_value_dict):
+    async def set_group_value_dict(self, group_value_dict, process_direct=True):
         sequence = ""
         for group, value in group_value_dict.items():
             sequence += f'<object id="{group}" value="{value}"/>'
-            for callback in self.value_direct_cbs:
-                await callback(group, value)
+            if process_direct:
+                for callback in self.value_direct_cbs:
+                    await callback(group, value)
         if sequence:
             await self.send_knx(sequence)
 
