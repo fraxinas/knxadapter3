@@ -89,7 +89,7 @@ class KnxAdapter():
             xml = '<write>' + sequence + '</write>\n\x04'
             log.debug("sending to knx:{!r}".format(xml))
             self.knx_client_writer.write(xml.encode(encoding='utf_8'))
-            self.knx_client_writer.drain()
+            await self.knx_client_writer.drain()
             data = await asyncio.wait_for(self.knx_client_reader.readline(), timeout=30.0)
             decoded = data.decode()
             if "<write status='error'>" in decoded:
