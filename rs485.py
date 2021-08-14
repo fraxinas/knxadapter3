@@ -41,6 +41,7 @@ class RS485(BasePlugin):
         dev = self.cfg["serialDevice"]
         try:
             self._reader, self._writer = await serial_asyncio.open_serial_connection(loop=loop, url=dev, baudrate=baudrate)
+            log.info(f"{self.device_name} Successfully opened {dev} @ {baudrate}.")
         except SerialException as e:
             log.error(f"{self.device_name} Can't open {dev}. {e!r}")
 
@@ -70,37 +71,39 @@ class RS485(BasePlugin):
     def _get_obj_by_key(self, rs485key):
         return next(item for item in self.obj_list if item["rs485key"] == rs485key)
 
-    async def process_direct(self, group, value):
-        try:
-            o = self.get_obj_by_knxgrp(group)
+    async def process_direct(self, knx_group, knx_val):
+        #try:
+            o = self.get_obj_by_knxgrp(knx_group)
             if "send" in o["enabled"]:
-                await self.write_rs485(o, value)
-        except StopIteration:
-            return
+                debug_msg = f"{self.device_name} process_direct({knx_group}={knx_val})"
+                await self.write_rs485(o, knx_val, debug_msg)
+        #except StopIteration:
+            #return
 
     async def process_knx(self, cmd):
-        try:
-            knx_grp, raw = cmd.split("=")
-            log.debug(f"{self.device_name} knx group {knx_grp} raw={raw}")
+#        try:
+            knx_group, knx_val = cmd.split("=")
+            debug_msg = f"{self.device_name} process_knx({knx_group}={knx_val})"
             try:
-                o = self.get_obj_by_knxgrp(knx_grp)
+                o = self.get_obj_by_knxgrp(knx_group)
                 if "send" in o["enabled"]:
-                    await self.write_rs485(o, raw)
+                    await self.write_rs485(o, knx_val, debug_msg)
             except StopIteration:
-                return True
-        except:
-            return False
+                pass
+            return True
+#        except:
+#            return False
 
-    async def write_rs485(self, o, value):
+    async def write_rs485(self, o, value, debug_msg):
         rs485key = o["rs485key"]
         if "valmap" in o:
             val = next((key for key, val in o["valmap"].items() if val == value), value)
         else:
             val = value
         cmd = (rs485key+'='+val)
-        log.debug(f"{self.device_name} writing RS485 command {cmd}")
+        log.debug(f"{debug_msg} writing RS485 command {cmd}")
         self._writer.write((cmd+'\r\n').encode(encoding='ascii'))
-        self._writer.drain()
+        await self._writer.drain()
 
     def _run(self):
         self._client = self.d.loop.run_until_complete(self.rs485_connection(self.d.loop))
