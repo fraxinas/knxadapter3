@@ -41,19 +41,17 @@ class RS485(BasePlugin):
         dev = self.cfg["serialDevice"]
         try:
             self._reader, self._writer = await serial_asyncio.open_serial_connection(loop=loop, url=dev, baudrate=baudrate)
-            log.info(f"{self.device_name} Successfully opened {dev} @ {baudrate}.")
+            log.info(f"{self.device_name} Successfully opened {dev} @ {baudrate} baud.")
         except SerialException as e:
             log.error(f"{self.device_name} Can't open {dev}. {e!r}")
 
     async def handle_rs485(self):
-        log_msg = []
         while True:
             try:
                 line = await self._reader.readline()
-                line = str(line, 'utf-8')
-                log.debug(self.device_name+" received: '"+line+"'")
-
-                (key, val) = line.strip().split('=')
+                cmd = line.decode('utf-8').strip()
+                log.debug(self.device_name+" received: '"+cmd+"'")
+                (key, val) = cmd.split('=')
 
                 o = self._get_obj_by_key(key)
                 if o and "receive" in o["enabled"]:
@@ -72,27 +70,27 @@ class RS485(BasePlugin):
         return next(item for item in self.obj_list if item["rs485key"] == rs485key)
 
     async def process_direct(self, knx_group, knx_val):
-        #try:
+        try:
             o = self.get_obj_by_knxgrp(knx_group)
             if "send" in o["enabled"]:
                 debug_msg = f"{self.device_name} process_direct({knx_group}={knx_val})"
                 await self.write_rs485(o, knx_val, debug_msg)
-        #except StopIteration:
-            #return
+        except StopIteration:
+            return
 
     async def process_knx(self, cmd):
-#        try:
+        try:
             knx_group, knx_val = cmd.split("=")
-            debug_msg = f"{self.device_name} process_knx({knx_group}={knx_val})"
             try:
                 o = self.get_obj_by_knxgrp(knx_group)
                 if "send" in o["enabled"]:
+                    debug_msg = f"{self.device_name} process_knx({knx_group}={knx_val})"
                     await self.write_rs485(o, knx_val, debug_msg)
             except StopIteration:
                 pass
             return True
-#        except:
-#            return False
+        except:
+            return False
 
     async def write_rs485(self, o, value, debug_msg):
         rs485key = o["rs485key"]
