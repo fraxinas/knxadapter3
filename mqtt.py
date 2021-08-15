@@ -36,6 +36,7 @@ class MQTT(BasePlugin):
         self.poll_interval = "poll_interval" in cfg and cfg["poll_interval"] or 10
         self._mqtt_tasks = None
         self._mqtt_client = None
+        self.status_pending_for_groups = []
 
     async def mqtt_loop(self):
         while True:
@@ -83,26 +84,28 @@ class MQTT(BasePlugin):
                 knx_group = o["knx_group"]
                 if jsonobj and "valmap" in o:
                     for key, valdict in o["valmap"].items():
-                        log.debug(f"{self.device_name} #### mqtt topic={message.topic} key={key} valdict={valdict} jsonobj {jsonobj}")
                         if key in jsonobj:
                             prop = jsonobj[key]
                             if type(valdict) == dict and prop in valdict:
                                 value = valdict[prop]
                             else:
                                 value = str(prop)
-                            log.debug(f"{self.device_name} #### mqtt key in jsonobj prop={prop} VALUE={value}")
                         else:
-                            log.debug(f"{self.device_name} #### mqtt key not contained, continue!!!")
+                            value = None
                             continue
                 prev_val = o["value"]
-                if prev_val != value:
+                if value == None:
+                    pass
+                elif prev_val != value:
                     o["value"] = value
                     group_value_dict[knx_group] = value
                     log.debug(f"{self.device_name} mqtt topic={message.topic} payload={payload} knx_group={knx_group} updated value {prev_val}=>{value}")
                     if group_value_dict:
-                        await self.d.set_group_value_dict(group_value_dict, False)
+                        await self.d.set_group_value_dict(group_value_dict)
                 else:
                     log.debug(f"{self.device_name} mqtt topic={message.topic} payload={payload} knx_group={knx_group} value={value} unchanged, ignored")
+                if knx_group in self.status_pending_for_groups:
+                    self.status_pending_for_groups.remove(knx_group)
 
     async def cancel_tasks(self):
         for task in self._mqtt_tasks:
@@ -119,17 +122,29 @@ class MQTT(BasePlugin):
         await self._write_mqtt(knx_group, knx_val, debug_msg)
 
     async def process_knx(self, cmd):
-        knx_group, knx_val = cmd.split("=")
-        debug_msg = f"{self.device_name} process_knx({knx_group}={knx_val})"
-        await self._write_mqtt(knx_group, knx_val, debug_msg)
+        try:
+            knx_group, knx_val = cmd.strip().split("=")
+            try:
+                o = self.get_obj_by_knxgrp(knx_group)
+                if o["enabled"]:
+                    debug_msg = f"{self.device_name} process_knx({knx_group}={knx_val})"
+                    await self._write_mqtt(knx_group, knx_val, debug_msg)
+            except StopIteration:
+                pass
+            return True
+        except Exception as e:
+            log.warning("f{self.device_name} couldn't parse KNX command {cmd} ({e}!")
+            return False
 
     async def _write_mqtt(self, knx_group, knx_val, debug_msg):
         if not self._mqtt_client:
             return
         objects = []
+        request_status = False
         for item in self.obj_list:
             if item["knx_group"] == knx_group:
                 objects.append(item)
+            request_status = "request_status" in item
         for o in objects:
             if "publish_topic" in o:
                 topic = o["publish_topic"]
@@ -141,14 +156,15 @@ class MQTT(BasePlugin):
                 log.info(f"{debug_msg} topic {topic} updating {prev_val}=>{payload}")
                 await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
                 o["value"] = knx_val
-        if "status_object" in self.cfg and self._mqtt_client:
+        if objects and request_status and "status_object" in self.cfg and self._mqtt_client and not knx_group in self.status_pending_for_groups:
             so = self.cfg["status_object"]
-            delay = so.get("delay", 1.0)
+            delay = so.get("delay", 2.0)
             topic = so["topic"]
             payload = so["payload"]
             await asyncio.sleep(delay)
             await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
             log.debug(f"{debug_msg} requested status topic {topic} payload=>{payload}")
+            self.status_pending_for_groups.append(knx_group)
 
     def _get_objects_by_topic(self, topic):
         objects = []
