@@ -54,17 +54,19 @@ class RS485(BasePlugin):
                 (key, val) = cmd.split('=')
 
                 o = self._get_obj_by_key(key)
-                if o and "receive" in o["enabled"]:
+                if "receive" in o["enabled"]:
                     if "valmap" in o and val in o["valmap"]:
                         knxval = o["valmap"][val]
                     else:
                         knxval = val
                     await self.d.set_group_value_dict({o["knx_group"]: knxval})
                 else:
-                    log.warning("{} command key {} not configured!".format(self.device_name, key))
+                    log.warning(f"{self.device_name} command key {key} is not a receiving object!")
 
             except ValueError:
                 log.warning("{} couldn't parse command {!r}!".format(self.device_name, line))
+            except StopIteration:
+                log.warning(f"{self.device_name} command key {key} not configured!")
 
     def _get_obj_by_key(self, rs485key):
         return next(item for item in self.obj_list if item["rs485key"] == rs485key)
