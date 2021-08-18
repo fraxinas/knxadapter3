@@ -28,8 +28,9 @@ class Rdm6300Reader(rdm6300.BaseReader):
     def __init__(self, cfg, daemon):
         super(Rdm6300Reader, self).__init__(cfg["serialDevice"])
         self.d = daemon
-        self.fobs = cfg["fobs"]
-        self.forbidden_fobs = cfg["forbidden_fobs"]
+        self.device_name = cfg["name"]
+        self.fobs = daemon.cfg["fobs"]
+        self.forbidden_fobs = daemon.cfg["forbidden_fobs"]
         self.throttle_delay = "throttle_delay" in cfg and cfg("throttle_delay") or 5
         self.objs_by_fob = {}
         for o in cfg["objects"]:

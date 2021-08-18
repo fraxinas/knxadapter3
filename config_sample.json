@@ -731,8 +731,6 @@
         "name":"RFID",
         "enabled":true,
         "serialDevice":"/dev/ttyAMA0",
-        "fobs":{"12345678": "Bob", "12345679": "Alice"},
-        "forbidden_fobs":{},
         "objects":[
             {
                 "knx_group":"other:door:door_opener",
@@ -741,6 +739,12 @@
                 "enabled":true
             }
         ]
-    }
+    },
+    "fobs":
+        {
+          "12345678": "Bob",
+          "12345679": "Alice"
+        },
+    "forbidden_fobs":{}
   ]
 }
