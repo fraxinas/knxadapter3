@@ -37,23 +37,41 @@ class Doorbird(BasePlugin):
         query = request.rel_url.query
         log.debug(f"{self.device_name} handle: {query!r}")
         if "toggle" in query:
+            if not "key" in query:
+                log.warning(f"{self.device_name} no FOB key given when handling {query!r}!")
+                return web.Response(status=403, text="Forbidden\n")
+            fobkey = query["key"]
+            fobname = self.d.cfg["fobs"].get(fobkey, "unknown")
             for item in self.obj_list:
                 if "opener" in item:
                     opener = item
                 if "lock" in item:
                     lock = item
             if lock["value"] == "close":
-                await self.d.set_group_value_dict({lock["knx_group"]:"open"})
-                await asyncio.sleep(lock["delay"])
-            await self.d.set_group_value_dict({opener["knx_group"]:"on"})
-            await asyncio.sleep(opener["delay"])
-            await self.d.set_group_value_dict({opener["knx_group"]:"off"})
-        return web.Response(text="success\n")
+                if fobkey in lock["allowed_fobs"]:
+                    log.warning(f"{self.device_name} {fobname}' FOB ({fobkey}) validated for unlocking!")
+                    await self.d.set_group_value_dict({lock["knx_group"]:"open"})
+                    lockdelay = lock["delay"]
+                    await asyncio.sleep(lock["delay"])
+                    log.warning(f"{self.device_name} lockdelay waited for {lockdelay}s")
+                else:
+                    log.warning(f"{self.device_name} {fobname}' FOB ({fobkey}) not allowed to unlock!")
+                    return web.Response(status=403, text="Forbidden\n")
+            if fobkey in opener["allowed_fobs"]:
+                log.info(f"{self.device_name} {fobname}'s FOB validated ({fobkey}) for opening!")
+                await self.d.set_group_value_dict({opener["knx_group"]:"on"})
+                await asyncio.sleep(opener["delay"])
+                await self.d.set_group_value_dict({opener["knx_group"]:"off"})
+                return web.Response(text="success\n")
+            else:
+                log.warning(f"{self.device_name} {fobname}'s FOB ({fobkey}) not allowed to open!")
+                return web.Response(status=403, text="Forbidden\n")
+        return web.Response(status=404, text="Not found\n")
 
     async def process_direct(self, knx_group, value):
         try:
             o = self.get_obj_by_knxgrp(knx_group)
-            log.debug(f"{self.device_name} knx_group={knx_group} value={value}")
+            log.debug(f"{self.device_name} update internal state knx_group={knx_group} value={value}")
             o["value"] = value
         except StopIteration:
             return
