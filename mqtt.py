@@ -22,7 +22,7 @@ import asyncio
 import logging
 from contextlib import AsyncExitStack, asynccontextmanager
 from helper import BasePlugin, knxalog as log
-from asyncio_mqtt import Client, MqttError
+from asyncio_mqtt import Client, MqttCodeError, MqttError
 from json import loads
 
 def plugin_def():
@@ -144,7 +144,7 @@ class MQTT(BasePlugin):
         for item in self.obj_list:
             if item["knx_group"] == knx_group:
                 objects.append(item)
-            request_status = "request_status" in item
+                request_status = "request_status" in item
         for o in objects:
             if "publish_topic" in o:
                 topic = o["publish_topic"]
@@ -153,18 +153,24 @@ class MQTT(BasePlugin):
                     payload = o["valmap"][knx_val]
                 else:
                     payload = knx_val
-                log.info(f"{debug_msg} topic {topic} updating {prev_val}=>{payload}")
-                await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
-                o["value"] = knx_val
+                log.info(f"{debug_msg} topic {topic} updating {prev_val}=>{knx_val} ({payload})")
+                try:
+                    await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
+                    o["value"] = knx_val
+                except MqttCodeError as error:
+                    log.error(f"{debug_msg} MqttCodeError {error} on topic {topic}")
         if objects and request_status and "status_object" in self.cfg and self._mqtt_client and not knx_group in self.status_pending_for_groups:
             so = self.cfg["status_object"]
-            delay = so.get("delay", 2.0)
+            delay = so.get("delay", 10.0)
             topic = so["topic"]
             payload = so["payload"]
             await asyncio.sleep(delay)
-            await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
-            log.debug(f"{debug_msg} requested status topic {topic} payload=>{payload}")
-            self.status_pending_for_groups.append(knx_group)
+            try:
+                await self._mqtt_client.publish(topic, payload, qos=1, retain=True)
+                log.debug(f"{debug_msg} requested status topic {topic} payload=>{payload}")
+                self.status_pending_for_groups.append(knx_group)
+            except MqttCodeError as error:
+                log.error(f"{debug_msg} MqttCodeError {error} on topic {topic}")
 
     def _get_objects_by_topic(self, topic):
         objects = []
