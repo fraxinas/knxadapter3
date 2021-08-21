@@ -40,7 +40,7 @@ class Rdm6300Reader(rdm6300.BaseReader):
                         self.objs_by_fob[key] = []
                     d = {"knx_group": o["knx_group"], "delay": o["delay"]}
                     self.objs_by_fob[key].append(d)
-        log.debug(f"objs_by_fob: {self.objs_by_fob!r}")
+        log.debug(f"{self.device_name} objs_by_fob: {self.objs_by_fob!r}")
 
     def card_inserted(self, card):
         asyncio.run_coroutine_threadsafe(self._card_inserted(card), self.d.loop).result()
@@ -55,40 +55,39 @@ class Rdm6300Reader(rdm6300.BaseReader):
         key = str(card.value)
         if key in self.forbidden_fobs:
             name = self.fobs[key]
-            log.warning(f"{name}'s FOB forbidden attempt! ({card})")
+            log.warning(f"{self.device_name} {name}'s FOB forbidden attempt! ({card})")
 
         if key in self.fobs:
             name = self.fobs[key]
-            log.info(f"{name}'s FOB validated ({card})")
+            log.info(f"{self.device_name} {name}'s FOB validated ({card})")
             if key in self.objs_by_fob:
                 for obj in self.objs_by_fob[key]:
                     knx_group = obj["knx_group"]
-                    log.info(f"opening {knx_group}")
+                    log.info(f"{self.device_name} opening {knx_group}")
                     await self.d.set_group_value_dict({knx_group: "on"})
             else:
-                log.warning(f"{name}'s FOB forbidden attempt! ({card})")
+                log.warning(f"{self.device_name} {name}'s FOB forbidden attempt! ({card})")
         else:
-            log.warning(f"Unknown FOB {card} attempted! delaying for {self.throttle_delay} s!")
+            log.warning(f"{self.device_name} Unknown FOB {card} attempted! delaying for {self.throttle_delay} s!")
             await asyncio.sleep(self.throttle_delay)
 
     async def _card_removed(self, card):
-        log.debug(f"FOB {card} removed!")
+        log.debug(f"{self.device_name} FOB {card} removed!")
         key = str(card.value)
         if key in self.objs_by_fob:
             for obj in self.objs_by_fob[key]:
                 knx_group = obj["knx_group"]
                 delay = obj["delay"]
                 await asyncio.sleep(delay)
-                log.debug(f"stopping {knx_group}")
+                log.debug(f"{self.device_name} stopping {knx_group}")
                 await self.d.set_group_value_dict({knx_group: "off"})
 
     async def _invalid_card(self, card):
-        log.warning(f"Invalid FOB {card} attempted!")
+        log.warning(f"{self.device_name} Invalid FOB {card} attempted!")
 
 class RFID(BasePlugin):
     def __init__(self, daemon, cfg):
         super(RFID, self).__init__(daemon, cfg)
-        log.debug(f"{self.device_name}")
         self.reader = None
 
     def _run(self):
