@@ -55,6 +55,9 @@ class DaikinAC(BasePlugin):
                         value = 1
                 except KeyError:
                     continue
+                except ValueError as e:
+                    log.debug("{} {!r} on key {}".format(self.device_name, e, ac_obj))
+                    continue
 
                 if value == o["value"]:
                     log_msg.append("{!r}: {!r}".format(ac_obj, value))
