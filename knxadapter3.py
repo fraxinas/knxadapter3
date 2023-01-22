@@ -51,7 +51,9 @@ class KnxAdapter():
 
         self._knx_lock = asyncio.Lock()
 
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
         self.knx_read_cbs = []
         self.value_direct_cbs = []
 
@@ -102,7 +104,7 @@ class KnxAdapter():
 
         knx_client = self.loop.run_until_complete(self.linknx_client(self.loop, self.cfg["linknx"]))
 
-        knx_server_coro = asyncio.start_server(self.knx_server_handler, self.cfg["sys"]["listenHost"], self.cfg["linknx"]["listenPort"], loop=self.loop)
+        knx_server_coro = asyncio.start_server(self.knx_server_handler, self.cfg["sys"]["listenHost"], self.cfg["linknx"]["listenPort"])
         knx_server = self.loop.run_until_complete(knx_server_coro)
 
         plugins = []
