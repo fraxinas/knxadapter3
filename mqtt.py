@@ -133,7 +133,7 @@ class MQTT(BasePlugin):
                 pass
             return True
         except Exception as e:
-            log.warning("f{self.device_name} couldn't parse KNX command {cmd} ({e}!")
+            log.warning(f"{self.device_name} couldn't parse KNX command {cmd} ({str(e)})!")
             return False
 
     async def _write_mqtt(self, knx_group, knx_val, debug_msg):
