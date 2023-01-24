@@ -110,6 +110,33 @@
         ]
     },
     {
+        "class":"onkyo_avr",
+        "name":"VSX-LX305",
+        "enabled":false,
+        "host":"10.42.190.21",
+        "port":60128,
+        "objects":[
+            {
+                "avr_object":"system-power",
+                "avr_zone":"main",
+                "knx_group":"other:homecinema:avr_power",
+                "enabled":true
+            },
+            {
+                "avr_object":"source",
+                "avr_zone":"main",
+                "knx_group":"other:homecinema:avr_input",
+                "enabled":true
+            },
+            {
+                "avr_object":"master-volume",
+                "avr_zone":"main",
+                "knx_group":"other:homecinema:avr_volume",
+                "enabled":true
+            }
+        ]
+    },
+    {
         "class":"pioneer_avr",
         "name":"VSX-2020",
         "enabled":false,
